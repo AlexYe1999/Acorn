@@ -1,6 +1,7 @@
 #pragma once
+#include"Timer.hpp"
 #include"BasicMouse.hpp"
-#include"GraphicsManager.hpp"
+#include"D3D12GraphicsManager.hpp"
 #include<string>
 #include<cstdint>
 #include<cassert>
@@ -26,9 +27,10 @@ protected:
     int16_t m_nWndHeight;
     HWND m_hWnd;
 
-    AcornEngine::BasicMouse m_mouse;
+    AcornEngine::Timer m_Timer;
+    AcornEngine::BasicMouse m_Mouse;
 
-    AcornEngine::GraphicsManager* m_pGraphicsManager;
+    AcornEngine::D3D12GraphicsManager* m_pGraphicsManager;
 
 protected:
     virtual LRESULT MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

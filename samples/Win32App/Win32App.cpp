@@ -5,7 +5,7 @@ Win32App::Win32App()
     m_bIsInit(false), m_bIsQuit(false),
     m_pAppInstance(),
     m_nWndWidth(0), m_nWndHeight(0),
-    m_hWnd(nullptr), m_mouse(),
+    m_hWnd(nullptr), m_Mouse(),
     m_pGraphicsManager(nullptr)
 {};
 
@@ -30,7 +30,7 @@ void Win32App::InitApp(
     m_hWnd = CreateWindowEx(
         0, CLASS_NAME.c_str(),             
         "Win32App Sample", WS_OVERLAPPEDWINDOW,            
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        CW_USEDEFAULT, CW_USEDEFAULT, m_nWndWidth, m_nWndHeight,
         NULL, NULL, appInstance, NULL
     );
 
@@ -40,23 +40,61 @@ void Win32App::InitApp(
 
     ShowWindow(m_hWnd, nCmdShow);
 
-    m_pGraphicsManager = AcornEngine::GraphicsManager::GetInstance();
+    m_pGraphicsManager = AcornEngine::D3D12GraphicsManager::GetInstance();
 
+    AcornEngine::GraphicsParam param;
+    param.MainWnd   = m_hWnd;
+    param.WndWidth  = m_nWndWidth;
+    param.WndHeight = m_nWndHeight;
+    param.ViewPort.Width = m_nWndWidth;
+    param.ViewPort.Height = m_nWndHeight;
+    param.ViewPort.TopLeftX = 0;
+    param.ViewPort.TopLeftY = 0;
+    param.ViewPort.MinDepth = 0.0f;
+    param.ViewPort.MaxDepth = 1.0f;
+    param.ScissorRect.left = 0;
+    param.ScissorRect.top  = 0;
+    param.ScissorRect.right = m_nWndWidth;
+    param.ScissorRect.bottom = m_nWndHeight;
+
+    m_pGraphicsManager->GetSettingParams(param);
+    m_pGraphicsManager->Initialize();
 
 
     m_bIsInit = true;
 }
 
 void Win32App::RunApp(){
-    assert(m_bIsInit == true);
 
-    while(m_bIsQuit){
+    assert(m_bIsInit == true);
+    uint64_t frameCount = 0;
+    float totalTime = 0.0f;
+    m_Timer.Reset();
+
+    while(!m_bIsQuit){
         MSG msg = {};
-        while(GetMessageA(&msg, NULL, 0, 0))
-        {
+
+        if(PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE)){
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        
+        m_Timer.Tick();
+        m_pGraphicsManager->Render();
+
+
+        totalTime += m_Timer.DeltaTime();        
+        frameCount++;
+        
+        std::string text = "Win32App Sample";
+        text += "  " + std::to_string(frameCount / totalTime) + " fps ";
+        SetWindowText(m_hWnd, text.c_str());
+
+        if(frameCount > 500){
+            frameCount = 0;
+            totalTime = 0.0f;
+        }
+
     }
 }
 
@@ -91,6 +129,7 @@ LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_CLOSE:{
             if(MessageBox(hwnd, "Really quit?", "My application", MB_OKCANCEL) == IDOK){
+                m_bIsQuit = true;
                 DestroyWindow(hwnd);
             }
             break;

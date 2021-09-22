@@ -1,4 +1,6 @@
 set(ALL_FILE
+    Vertex.hpp
+    Vertex.cpp
     Vector.hpp
     Vector.cpp
     Point.hpp

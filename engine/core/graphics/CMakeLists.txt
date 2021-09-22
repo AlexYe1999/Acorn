@@ -1,4 +1,6 @@
 set(ALL_FILE
+    d3dx12.h
+    d3dUtil.hpp
     GraphicsManager.hpp
     D3D12GraphicsManager.hpp
     D3D12GraphicsManager.cpp
@@ -14,5 +16,6 @@ target_link_libraries(
     GraphicsManager
     DataType
     D3D12.lib
+	DXGI.lib
 )
 set_target_properties(GraphicsManager PROPERTIES FOLDER "engine/core") 

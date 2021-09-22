@@ -1,4 +1,5 @@
 #add_subdirectory(asset_loader)
-add_subdirectory(graphics)
 add_subdirectory(input)
+add_subdirectory(timer)
 add_subdirectory(memory)
+add_subdirectory(graphics)
