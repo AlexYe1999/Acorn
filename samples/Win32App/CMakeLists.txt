@@ -6,7 +6,7 @@ include_directories(${ENGINE_DIR}/interface)
 include_directories(${ENGINE_DIR}/data_type)
 include_directories(${ENGINE_DIR}/core/timer)
 include_directories(${ENGINE_DIR}/core/input)
-include_directories(${ENGINE_DIR}/core/graphics)
+include_directories(${ENGINE_DIR}/core/graphics/D3DGraphics)
 
 set(ALL_FILE
     main.cpp
@@ -21,6 +21,7 @@ target_link_libraries(
     ${PROJECT_NAME}_Sample
     IMGUI_WIN32_DX12
     Timer
+    Input
     GraphicsManager
 )
 

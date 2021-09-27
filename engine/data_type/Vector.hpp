@@ -4,7 +4,7 @@
 namespace AcornEngine{
     using namespace DirectX;
 
-    struct Vector2f : XMFLOAT2{
+    struct Vector2f : DirectX::XMFLOAT2{
         Vector2f() : XMFLOAT2(1.0f, 1.0f){}
         Vector2f(const float x) : XMFLOAT2(x, x) {}
 
@@ -22,10 +22,10 @@ namespace AcornEngine{
         Vector2f& operator /=(const float factor);
     };
 
-    struct Vector3f : XMFLOAT3{
+    struct Vector3f : DirectX::XMFLOAT3{
         Vector3f() : XMFLOAT3(1.0f, 1.0f, 1.0f){}
         Vector3f(const float x) : XMFLOAT3(x, x, x){}
-        Vector3f(const float x, const float y, const float z) : XMFLOAT3(x, y, z) {}
+        Vector3f(const float x, const float y, const float z) : DirectX::XMFLOAT3(x, y, z) {}
 
         Vector3f operator +(const Vector3f& vec) const;
         Vector3f operator -(const Vector3f& vec) const;
@@ -41,7 +41,8 @@ namespace AcornEngine{
         Vector3f& operator /=(const float factor);
     };
 
-    struct Vector4f : XMFLOAT4{
+    struct Vector4f : DirectX::XMFLOAT4{
+        Vector4f(const XMVECTOR& vector){ XMStoreFloat4(this, vector); }
         Vector4f() : XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f){}
         Vector4f(const float x) : XMFLOAT4(x, x, x, x){}
         Vector4f(const float x, const float y, const float z, const float w)

@@ -12,7 +12,6 @@ namespace AcornEngine{
 
         virtual void Initialize() = 0;
         virtual void Finalize() = 0;
-        
         virtual void Tick() = 0;
 
         virtual void KeyDown(const uint8_t key){

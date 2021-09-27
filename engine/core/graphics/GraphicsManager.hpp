@@ -1,6 +1,7 @@
 #pragma once
 #include"IRuntimeModule.hpp"
 #include"Vector.hpp"
+#include"Scene.hpp"
 
 namespace AcornEngine{
 
@@ -18,12 +19,12 @@ namespace AcornEngine{
         virtual void ClearDebugBuffers() = 0;
 
     protected:
-        //virtual void InitializeBuffers(const Scene& scene) = 0;
+        virtual void InitializeBuffers(const Scene& scene) = 0;
+        virtual void InitializeConstants() = 0;
         virtual void InitializeShaders() = 0;
         virtual void ClearBuffers() = 0;
-       virtual void ClearShaders() = 0;
+        virtual void ClearShaders() = 0;
 
-        virtual void InitConstants() = 0;
         virtual void CalculateCameraMatrix() = 0;
         virtual void CalculateLights() = 0;
         virtual void UpdateConstants() = 0;

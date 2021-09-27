@@ -11,15 +11,19 @@ namespace AcornEngine{
         virtual void Finalize() override {}
         virtual void Tick() override {}
 
-        void SetCurrPosition(const Point2<uint8_t>& Position);
-        void SetLastPosition(const Point2<uint8_t>& Position);
-        const Point2<uint8_t>& GetLastPosition() const;
-        const Point2<uint8_t>& GetCurrPosition() const;
-        const Point2<uint8_t>& GetDeltaPosition() const;
+        virtual void KeyDown(const uint8_t key) override;
+        virtual void KeyUp(const uint8_t key) override;
+        virtual bool IsKeyDown(const uint8_t key) const override;
+
+        void SetCurrPosition(const Point2<int16_t>& Position);
+        void SetLastPosition(const Point2<int16_t>& Position);
+        const Point2<int16_t>& GetLastPosition() const;
+        const Point2<int16_t>& GetCurrPosition() const;
+        const Point2<int16_t>& GetDeltaPosition() const;
         
     private:
-        Point2<uint8_t> m_uLastCursorPos; 
-        Point2<uint8_t> m_uCurrentCursorPos; 
+        Point2<int16_t> m_uLastCursorPos; 
+        Point2<int16_t> m_uCurrentCursorPos; 
 
     };
 

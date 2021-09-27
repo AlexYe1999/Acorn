@@ -1,11 +1,14 @@
 #pragma once
 #include"Timer.hpp"
+#include"Point.hpp"
 #include"BasicMouse.hpp"
 #include"D3D12GraphicsManager.hpp"
+#include<DirectXMath.h>
 #include<string>
 #include<cstdint>
 #include<cassert>
 #include<windows.h>
+#include<windowsx.h>
 
 class Win32App{
 
@@ -34,6 +37,7 @@ protected:
 
 protected:
     virtual LRESULT MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    void UpdateInput();
 
 protected:
     Win32App();
@@ -41,4 +45,5 @@ protected:
     Win32App& operator =(const Win32App &app) = delete;
     static inline Win32App* s_pInstance = nullptr;
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 };

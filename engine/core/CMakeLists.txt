@@ -2,4 +2,5 @@
 add_subdirectory(input)
 add_subdirectory(timer)
 add_subdirectory(memory)
+add_subdirectory(camera)
 add_subdirectory(graphics)

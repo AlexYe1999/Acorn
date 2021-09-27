@@ -12,7 +12,7 @@ set(3RDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty CACHE PATH "3rdparty folde
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include(scripts/InitResource.cmake)
+include(scripts/cmake/InitResource.cmake)
 
 InitResource()
 

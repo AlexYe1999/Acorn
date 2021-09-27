@@ -1,16 +1,17 @@
 set(ALL_FILE
-    d3dx12.h
-    d3dUtil.hpp
+    D3DGraphics/UploadBuffer.hpp
+    D3DGraphics/d3dx12.h
+    D3DGraphics/d3dUtil.hpp
+    D3DGraphics/d3dUtil.cpp
+    D3DGraphics/D3D12GraphicsManager.hpp
+    D3DGraphics/D3D12GraphicsManager.cpp
     GraphicsManager.hpp
-    D3D12GraphicsManager.hpp
-    D3D12GraphicsManager.cpp
 )
 
 add_library(GraphicsManager ${ALL_FILE})
 
 include_directories(${ENGINE_DIR}/interface)
 include_directories(${ENGINE_DIR}/data_type)
-include_directories(${3RDPARTY_DIR}/d3d12_helper)
 
 target_link_libraries(
     GraphicsManager

@@ -17,6 +17,7 @@ namespace AcornEngine{
         Point2<DataType>& operator -=(const Point2<DataType>& pt);
         Point2<DataType>& operator *=(DataType factor);
         Point2<DataType>& operator /=(DataType factor);
+
     };
 
     template<typename DataType>
