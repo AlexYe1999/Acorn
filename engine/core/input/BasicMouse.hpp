@@ -2,7 +2,7 @@
 #include"IKeyModule.hpp"
 #include"Point.hpp"
 
-namespace AcornEngine{
+namespace Acorn{
 
     class BasicMouse : public IKeyModule<3>{
     public:
@@ -19,7 +19,7 @@ namespace AcornEngine{
         void SetLastPosition(const Point2<int16_t>& Position);
         const Point2<int16_t>& GetLastPosition() const;
         const Point2<int16_t>& GetCurrPosition() const;
-        const Point2<int16_t>& GetDeltaPosition() const;
+        const Point2<int16_t> GetDeltaPosition() const;
         
     private:
         Point2<int16_t> m_uLastCursorPos; 

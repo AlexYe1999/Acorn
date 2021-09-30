@@ -1,6 +1,6 @@
 #include"BasicMouse.hpp"
 
-namespace AcornEngine{
+namespace Acorn{
 
     void BasicMouse::KeyDown(const uint8_t key){
         m_bKeyBitSet[key] = true;
@@ -30,7 +30,7 @@ namespace AcornEngine{
         return m_uCurrentCursorPos;
     }
 
-    const Point2<int16_t>& BasicMouse::GetDeltaPosition() const {
+    const Point2<int16_t> BasicMouse::GetDeltaPosition() const {
         return m_bKeyBitSet[0] == true ? m_uCurrentCursorPos - m_uLastCursorPos : 0;
     }
 

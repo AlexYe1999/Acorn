@@ -1,7 +1,7 @@
 #pragma once
 #include<cstdint>
 
-namespace AcornEngine{
+namespace Acorn{
 
     struct BlockHeader{
         BlockHeader* pNext;

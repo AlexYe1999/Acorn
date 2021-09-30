@@ -1,7 +1,7 @@
 #pragma once
 #include "IKeyModule.hpp"
 
-namespace AcornEngine{
+namespace Acorn{
 
     class BasicKeyBoard : public IKeyModule<256>{
     public:

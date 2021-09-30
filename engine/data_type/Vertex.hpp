@@ -2,7 +2,7 @@
 #include<D3D12.h>
 #include<array>
 
-namespace AcornEngine{
+namespace Acorn{
 
     struct VertexTest{
         Vector3f Position;

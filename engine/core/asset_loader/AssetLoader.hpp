@@ -2,7 +2,7 @@
 #include"IRuntimeModule.hpp"
 #include<vector>
 #include<string>
-namespace AcornEngine{
+namespace Acorn{
 
     class AssetLoader : public IRuntimeModule{
     public:

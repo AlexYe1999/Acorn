@@ -1,19 +1,21 @@
 #include"D3D12GraphicsManager.hpp"
 
-extern AcornEngine::GraphicsParam g_GraphicsConfig;
+extern Acorn::GraphicsParam g_GraphicsConfig;
 
-namespace AcornEngine{
+namespace Acorn{
 
     D3D12GraphicsManager::D3D12GraphicsManager()
         :
         m_VertexBufferView(),
         m_IndexBufferView(),
-        m_pPass(nullptr),
+        m_pRtBuffer(), 
+        m_pFrameResource(),
         m_uCurrentFence(0),
         m_uCurrentBufferIndex(0),
         m_uRtvDescriptorSize(0),
         m_uDsvDescriptorSize(0),
-        m_uCbvUavDescriptorSize(0)
+        m_uCbvUavDescriptorSize(0),
+        m_PassBuffer()
     {}
 
     void D3D12GraphicsManager::Initialize(){
@@ -58,7 +60,7 @@ namespace AcornEngine{
     }
 
     void D3D12GraphicsManager::Tick(){
-
+        Render();
     }
 
     void D3D12GraphicsManager::Clear(){
@@ -141,7 +143,8 @@ namespace AcornEngine{
     void D3D12GraphicsManager::UpdataConstants(const float theta, const float phi){
 
         XMMATRIX model = XMMatrixRotationY(-theta) * XMMatrixRotationX(phi);
-        
+
+
         XMVECTOR pos = XMVectorSet(0.0f, 0.0f, 10.0f, 1.0f);
         XMVECTOR lookat = XMVectorZero();
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);

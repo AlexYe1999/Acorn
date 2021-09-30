@@ -2,6 +2,7 @@
 #include"../GraphicsManager.hpp"
 #include"Vector.hpp"
 #include"Scene.hpp"
+#include"FrameResource.hpp"
 #include"d3dx12.h"
 #include"d3dUtil.hpp"
 #include"UploadBuffer.hpp"
@@ -12,16 +13,16 @@
 #include<D3D12.h>
 #include<d3dcompiler.h>
 
-namespace AcornEngine{
+namespace Acorn{
     using Microsoft::WRL::ComPtr;
-    using std::unique_ptr;
 
     struct GraphicsParam{
         HWND MainWnd = nullptr;
-        uint16_t WndWidth  = 250;
-        uint16_t WndHeight = 250;
+        uint16_t WndWidth  = 500;
+        uint16_t WndHeight = 500;
         uint8_t AdapterIndex = 1;
         uint8_t SwapChainBufferCount = 2;
+        uint8_t FrameResorceCount = 3;
         D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_12_0;
         DXGI_FORMAT DepthStansilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
         DXGI_FORMAT BackBufferFormat   = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -32,8 +33,11 @@ namespace AcornEngine{
     class D3D12GraphicsManager : public GraphicsManager{
     public:
         static D3D12GraphicsManager* GetInstance() {
-            return s_pInstance != nullptr ? s_pInstance
-                : s_pInstance = new D3D12GraphicsManager;
+            if(!ms_pInstance){
+                ms_pInstance = new D3D12GraphicsManager;
+                ms_pInstance->Initialize();
+            }
+            return ms_pInstance;
         }
 
         void ResetRtAndDs();
@@ -90,13 +94,14 @@ namespace AcornEngine{
         D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
         D3D12_INDEX_BUFFER_VIEW  m_IndexBufferView;
 
-        unique_ptr<ComPtr<ID3D12Resource>[]> m_pRtBuffer;
+        std::unique_ptr<ComPtr<ID3D12Resource>[]> m_pRtBuffer;
         ComPtr<ID3D12Resource> m_pDsBuffer;
         ComPtr<ID3D12Resource> m_pVertexUploadBuffer;
         ComPtr<ID3D12Resource> m_pIndexUploadBuffer;
         ComPtr<ID3D12Resource> m_pVertexBuffer;
         ComPtr<ID3D12Resource> m_pIndexBuffer;
-        unique_ptr<UploadBuffer<Matrix4f, true>> m_pPass;
+
+        std::unique_ptr<FrameResource[]> m_pFrameResource;
 
         ComPtr<ID3D12RootSignature> m_pRootSignature;
 
@@ -110,13 +115,13 @@ namespace AcornEngine{
         uint16_t m_uDsvDescriptorSize;
         uint16_t m_uCbvUavDescriptorSize;
 
-        Matrix4f m_MVPMatrix;
+        PassConstant m_PassBuffer;
 
     protected:
         D3D12GraphicsManager();
         D3D12GraphicsManager(const D3D12GraphicsManager& instance) = delete;
         void operator =(const D3D12GraphicsManager& instance) = delete;
-        static inline D3D12GraphicsManager* s_pInstance = nullptr;
+        static inline D3D12GraphicsManager* ms_pInstance = nullptr;
 
     protected:
         D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;

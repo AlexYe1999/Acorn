@@ -1,6 +1,6 @@
 #include "MemoryManager.hpp"
 
-namespace AcornEngine {
+namespace Acorn {
     static const uint32_t kBlockSizes[] = {
         // 4-increments
         4,  8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48,

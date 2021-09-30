@@ -11,7 +11,7 @@ int WINAPI WinMain(
     Win32App *app = Win32App::GetInstance();
     
     try{
-        app->InitApp(hInstance, nCmdShow, 500, 500);
+        app->InitApp(hInstance, nCmdShow, 800, 800);
     }
     catch(...){
         return 0;

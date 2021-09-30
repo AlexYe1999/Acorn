@@ -6,10 +6,11 @@ Win32App::Win32App()
     m_pAppInstance(),
     m_nWndWidth(0), m_nWndHeight(0),
     m_hWnd(nullptr), m_Mouse(),
-    m_pGraphicsManager(nullptr)
+    m_pGraphicsManager(nullptr),
+    m_pScene(nullptr)
 {};
 
-AcornEngine::GraphicsParam g_GraphicsConfig;
+Acorn::GraphicsParam g_GraphicsConfig;
 
 void Win32App::InitApp(
     const HINSTANCE appInstance, int nCmdShow,
@@ -40,8 +41,7 @@ void Win32App::InitApp(
     }
 
     ShowWindow(m_hWnd, nCmdShow);
-
-    m_pGraphicsManager = AcornEngine::D3D12GraphicsManager::GetInstance();
+	UpdateWindow(m_hWnd);
 
     g_GraphicsConfig.MainWnd   = m_hWnd;
     g_GraphicsConfig.WndWidth  = m_nWndWidth;
@@ -57,8 +57,9 @@ void Win32App::InitApp(
     g_GraphicsConfig.ScissorRect.right = m_nWndWidth;
     g_GraphicsConfig.ScissorRect.bottom = m_nWndHeight;
 
+    m_pGraphicsManager = Acorn::D3D12GraphicsManager::GetInstance();
 
-    m_pGraphicsManager->Initialize();
+    BuildScene();
 
     m_bIsInit = true;
 }
@@ -73,15 +74,16 @@ void Win32App::RunApp(){
     while(!m_bIsQuit){
         MSG msg = {};
 
-        if(PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE)){
+        if(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)){
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         
         UpdateInput();
-        m_pGraphicsManager->Render();
-        
+
         m_Timer.Tick();
+        m_pGraphicsManager->Tick();
+        
         totalTime += m_Timer.DeltaTime();
         frameCount++;
 
@@ -97,11 +99,11 @@ void Win32App::RunApp(){
     }
 }
 
-inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
+ inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
     switch (uMsg){
         case WM_LBUTTONDOWN:{
             SetCapture(hwnd);
-            AcornEngine::Point2<int16_t> p;
+            Acorn::Point2<int16_t> p;
             p.x = GET_X_LPARAM(lParam);
             p.y = GET_Y_LPARAM(lParam);
             m_Mouse.SetLastPosition(p);
@@ -130,7 +132,7 @@ inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             break;
         }
         case WM_MOUSEMOVE:{
-            AcornEngine::Point2<int16_t> p;
+            Acorn::Point2<int16_t> p;
             p.x = GET_X_LPARAM(lParam);
             p.y = GET_Y_LPARAM(lParam);
             m_Mouse.SetCurrPosition(p);
@@ -141,14 +143,14 @@ inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             g_GraphicsConfig.WndHeight = HIWORD(lParam);
 
             if(m_bIsInit) m_pGraphicsManager->ResetRtAndDs();
-            break;
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
         }
         case WM_CLOSE:{
             if(MessageBox(hwnd, "Really quit?", "My application", MB_OKCANCEL) == IDOK){
                 m_bIsQuit = true;
                 DestroyWindow(hwnd);
+                return 0;
             }
-            break;
         }
         case WM_DESTROY:{
             PostQuitMessage(0);
@@ -159,6 +161,11 @@ inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+void Win32App::BuildScene(){
+    m_pScene = std::make_unique<Acorn::Scene>();
+    m_pScene->m_MainCamera.SetPosition();
+}
+
 inline void Win32App::UpdateInput(){
     static int x = 0;
     static int y = 0;
@@ -166,7 +173,7 @@ inline void Win32App::UpdateInput(){
     static int y_t = 0;
 
     if(m_Mouse.IsKeyDown(0)){
-        AcornEngine::Point2<int16_t> p = m_Mouse.GetDeltaPosition();
+        Acorn::Point2<int16_t> p = m_Mouse.GetDeltaPosition();
         x_t = p.x;
         y_t = p.y;
     }

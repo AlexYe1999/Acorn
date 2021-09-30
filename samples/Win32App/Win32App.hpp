@@ -1,14 +1,16 @@
 #pragma once
 #include"Timer.hpp"
+#include"Scene.hpp"
 #include"Point.hpp"
 #include"BasicMouse.hpp"
 #include"D3D12GraphicsManager.hpp"
-#include<DirectXMath.h>
 #include<string>
 #include<cstdint>
 #include<cassert>
+#include<memory>
 #include<windows.h>
 #include<windowsx.h>
+#include<DirectXMath.h>
 
 class Win32App{
 
@@ -22,6 +24,7 @@ public:
     virtual void RunApp();
 
 protected:
+
     bool m_bIsInit;
     bool m_bIsQuit;
 
@@ -30,14 +33,18 @@ protected:
     int16_t m_nWndHeight;
     HWND m_hWnd;
 
-    AcornEngine::Timer m_Timer;
-    AcornEngine::BasicMouse m_Mouse;
-
-    AcornEngine::D3D12GraphicsManager* m_pGraphicsManager;
+    std::unique_ptr<Acorn::Scene> m_pScene;
 
 protected:
-    virtual LRESULT MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    Acorn::Timer m_Timer;
+    Acorn::BasicMouse m_Mouse;
+
+    Acorn::D3D12GraphicsManager* m_pGraphicsManager;
+
+protected:
+    void BuildScene();
     void UpdateInput();
+    virtual LRESULT MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 protected:
     Win32App();

@@ -3,7 +3,7 @@
 #include"Vector.hpp"
 #include"Scene.hpp"
 
-namespace AcornEngine{
+namespace Acorn{
 
     class GraphicsManager : public IRuntimeModule{
     public:

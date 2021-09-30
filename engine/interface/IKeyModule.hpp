@@ -3,7 +3,7 @@
 #include<cstdint>
 #include<bitset>
 
-namespace AcornEngine{
+namespace Acorn{
 
     template<uint8_t KeyNum>
     class IKeyModule : public IRuntimeModule{

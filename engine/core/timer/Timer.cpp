@@ -1,5 +1,5 @@
 #include"Timer.hpp"
-namespace AcornEngine{
+namespace Acorn{
 
     Timer::Timer()
         :

@@ -1,7 +1,7 @@
 #pragma once
 #include<DirectXMath.h>
 
-namespace AcornEngine{
+namespace Acorn{
     using namespace DirectX;
 
     struct Vector2f : DirectX::XMFLOAT2{
@@ -33,6 +33,8 @@ namespace AcornEngine{
         Vector3f operator /(const Vector3f& vec) const;
         Vector3f operator *(const float factor) const;
         Vector3f operator /(const float factor) const;
+        XMVECTOR operator ()() const;
+        Vector3f& operator =(const XMVECTOR& vec);
         Vector3f& operator +=(const Vector3f& vec);
         Vector3f& operator -=(const Vector3f& vec);
         Vector3f& operator *=(const Vector3f& vec);

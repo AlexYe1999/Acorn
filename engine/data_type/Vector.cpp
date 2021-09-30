@@ -1,6 +1,6 @@
 #include"Vector.hpp"
 
-namespace AcornEngine{
+namespace Acorn{
 
     inline Vector2f Vector2f::operator +(const Vector2f& vec) const{
         Vector2f vector;
@@ -57,7 +57,6 @@ namespace AcornEngine{
         return *this;
     }
 
-
     inline Vector3f Vector3f::operator +(const Vector3f& vec) const{
         Vector3f vector;
         XMStoreFloat3(&vector, XMLoadFloat3(this)+XMLoadFloat3(&vec));
@@ -87,6 +86,13 @@ namespace AcornEngine{
         Vector3f vector(factor);
         XMStoreFloat3(&vector, XMLoadFloat3(this)/XMLoadFloat3(&vector));
         return vector;
+    }
+    inline XMVECTOR Vector3f::operator ()() const{
+        return XMLoadFloat3(this);
+    }
+    inline Vector3f& Vector3f::operator =(const XMVECTOR& vec){
+        XMStoreFloat3(this, vec);
+        return *this;
     }
     inline Vector3f& Vector3f::operator +=(const Vector3f& vec){
         XMStoreFloat3(this, XMLoadFloat3(this)+XMLoadFloat3(&vec));

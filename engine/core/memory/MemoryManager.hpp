@@ -2,7 +2,7 @@
 #include"Allocator.hpp"
 #include"IRuntimeModule.hpp"
 #include<malloc.h>
-namespace AcornEngine {
+namespace Acorn {
     class MemoryManager : IRuntimeModule{
     public:
         template<typename T, typename... Arguments>

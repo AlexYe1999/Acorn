@@ -1,6 +1,7 @@
+#pragma once
 #include<DirectXMath.h>
 
-namespace AcornEngine{
+namespace Acorn{
     using namespace DirectX;
 
     struct Matrix4f : XMFLOAT4X4{
@@ -23,13 +24,13 @@ namespace AcornEngine{
         Matrix4f(const XMMATRIX& matrix) : XMFLOAT4X4(){
             XMStoreFloat4x4(this, matrix);
         }
+        explicit Matrix4f(_In_reads_(16) const float *pArray) : XMFLOAT4X4(pArray){}
         void operator=(const XMMATRIX& matrix){
             XMStoreFloat4x4(this, matrix);
         }
         XMMATRIX operator()(const XMMATRIX& matrix){
             return XMLoadFloat4x4(this);
         }
-        explicit Matrix4f(_In_reads_(16) const float *pArray) : XMFLOAT4X4(pArray){}
     };
 
 }

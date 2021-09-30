@@ -1,7 +1,7 @@
 #pragma once
 #include<DirectXPackedVector.h>
 
-namespace AcornEngine{
+namespace Acorn{
     using namespace DirectX::PackedVector;
 
     class Color : XMCOLOR{

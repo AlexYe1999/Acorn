@@ -1,6 +1,6 @@
 #pragma once
 
-namespace AcornEngine{
+namespace Acorn{
 
     class IRuntimeModule{
     public:

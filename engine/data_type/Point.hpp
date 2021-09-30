@@ -1,5 +1,5 @@
 #pragma once
-namespace AcornEngine{
+namespace Acorn{
 
     template<typename DataType>
     struct Point2{

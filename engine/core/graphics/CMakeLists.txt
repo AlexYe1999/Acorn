@@ -1,3 +1,9 @@
+add_subdirectory(D3DGraphics/resource)
+include_directories(${ENGINE_DIR}/interface)
+include_directories(${ENGINE_DIR}/data_type)
+include_directories(${ENGINE_DIR}/core/camera)
+include_directories(${ENGINE_DIR}/core/graphics/D3DGraphics/resource)
+
 set(ALL_FILE
     D3DGraphics/UploadBuffer.hpp
     D3DGraphics/d3dx12.h
@@ -10,12 +16,10 @@ set(ALL_FILE
 
 add_library(GraphicsManager ${ALL_FILE})
 
-include_directories(${ENGINE_DIR}/interface)
-include_directories(${ENGINE_DIR}/data_type)
-
 target_link_libraries(
     GraphicsManager
     DataType
+    D3DResource
     D3D12.lib
 	DXGI.lib
 )

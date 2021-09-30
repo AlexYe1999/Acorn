@@ -2,7 +2,7 @@
 #include"IRuntimeModule.hpp"
 #include<cstdint>
 #include<windows.h>
-namespace AcornEngine{
+namespace Acorn{
 
     class Timer : public IRuntimeModule{
     public:

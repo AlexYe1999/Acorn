@@ -1,6 +1,4 @@
 set(ALL_FILE
-    Scene.hpp
-    Scene.cpp
     Vertex.hpp
     Vertex.cpp
     Matrix.hpp

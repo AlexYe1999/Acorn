@@ -1,10 +1,12 @@
+#pragma once
 #include"D3DUtil.hpp"
 #include"d3dx12.h"
 #include<D3D12.h>
+#pragma once
 #include<cstdint>
 #include<wrl.h>
 
-namespace AcornEngine{
+namespace Acorn{
     
     template<typename DataType, bool isConstantBuffer>
     class UploadBuffer{
