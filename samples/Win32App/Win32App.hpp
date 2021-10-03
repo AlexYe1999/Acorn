@@ -1,13 +1,19 @@
 #pragma once
 #include"Timer.hpp"
+#include"Mesh.hpp"
 #include"Scene.hpp"
 #include"Point.hpp"
+#include"Vector.hpp"
+#include"Vertex.hpp"
 #include"BasicMouse.hpp"
+#include"GeometryGenerator.hpp"
 #include"D3D12GraphicsManager.hpp"
-#include<string>
 #include<cstdint>
 #include<cassert>
+#include<string>
 #include<memory>
+#include<iostream>
+#include<unordered_map>
 #include<windows.h>
 #include<windowsx.h>
 #include<DirectXMath.h>
@@ -43,6 +49,10 @@ protected:
 
 protected:
     void BuildScene();
+    void CreateMesh();
+    void CreateRenderItem();
+
+protected:
     void UpdateInput();
     virtual LRESULT MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

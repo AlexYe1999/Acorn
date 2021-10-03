@@ -17,8 +17,8 @@ namespace Acorn{
             m_uElementByteSize(0),
             m_bIsConstantBuffer(isConstantBuffer)
         {   
-            m_uElementByteSize = constexpr(isConstantBuffer 
-                ? D3DUtil::CalcAlignment(sizeof(DataType)) : sizeof(DataType));
+            m_uElementByteSize = isConstantBuffer 
+                ? D3DUtil::CalcAlignment(sizeof(DataType)) : sizeof(DataType);
 
             device->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, 

@@ -7,6 +7,7 @@ namespace Acorn{
     struct Vector2f : DirectX::XMFLOAT2{
         Vector2f() : XMFLOAT2(1.0f, 1.0f){}
         Vector2f(const float x) : XMFLOAT2(x, x) {}
+        Vector2f(const float x, const float y) : XMFLOAT2(x, y) {}
 
         Vector2f operator +(const Vector2f& vec) const;
         Vector2f operator -(const Vector2f& vec) const;
@@ -24,6 +25,7 @@ namespace Acorn{
 
     struct Vector3f : DirectX::XMFLOAT3{
         Vector3f() : XMFLOAT3(1.0f, 1.0f, 1.0f){}
+        Vector3f(const XMFLOAT3& vec) : XMFLOAT3(vec){}
         Vector3f(const float x) : XMFLOAT3(x, x, x){}
         Vector3f(const float x, const float y, const float z) : DirectX::XMFLOAT3(x, y, z) {}
 

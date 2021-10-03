@@ -1,17 +1,20 @@
 #pragma once
 #include"RenderItem.hpp"
 #include"Camera.hpp"
+#include"Mesh.hpp"
 #include"vector"
 #include<memory>
 namespace Acorn{
     struct Scene{
 
-        Camera m_MainCamera;
+        Camera MainCamera;
 
-        std::unique_ptr<RenderItem[]> m_pAllRenderItems = nullptr;
+        std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
 
-        std::vector<RenderItem*> m_pOpaqueRenderItems;
-        std::vector<RenderItem*> m_pTransparentRenderItems;
+        std::vector<RenderItem*> OpaqueRenderItems;
+        std::vector<RenderItem*> TransparentRenderItems;
+
+        std::unordered_map<std::string, std::unique_ptr<Mesh>> Meshes;
     };
 
 }

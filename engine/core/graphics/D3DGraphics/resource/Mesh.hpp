@@ -21,7 +21,6 @@ namespace Acorn{
         void ReleaseUploaders();
 
         std::string Name;
-
         std::unordered_map<std::string, SubMesh> SubMesh;
 
         DXGI_FORMAT IndexFormat       = DXGI_FORMAT_R16_UINT;

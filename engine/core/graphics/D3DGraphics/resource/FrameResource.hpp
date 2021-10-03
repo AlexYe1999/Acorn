@@ -8,18 +8,29 @@
 #include"UploadBuffer.hpp"
 
 namespace Acorn{
-    struct PassConstant; //size 36
-    struct ObjectConstant; // size 4
 
+    template<typename PassType, typename ObjectType>
     struct FrameResource{
-        FrameResource(ID3D12Device *device, uint32_t passCount, uint32_t objectCount);
+        FrameResource::FrameResource(
+            ID3D12Device* device,
+            uint32_t passCount,
+            uint32_t objectCount
+        ){
+            device->CreateCommandAllocator(
+                D3D12_COMMAND_LIST_TYPE_DIRECT,
+                IID_PPV_ARGS(CmdListAlloc.GetAddressOf())
+            );
+
+            PassCB = std::make_unique<UploadBuffer<PassType, true>>(device, passCount);
+            OjectCB = std::make_unique<UploadBuffer<ObjectType, true>>(device, objectCount);
+        }
         FrameResource(const FrameResource &frame) = delete;
         FrameResource& operator = (const FrameResource& frame) = delete;
 
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CmdListAlloc;
 
-        std::unique_ptr<UploadBuffer<PassConstant, true>> PassCB = nullptr;
-        std::unique_ptr<UploadBuffer<ObjectConstant, true>> OjectCB = nullptr;
+        std::unique_ptr<UploadBuffer<PassType, true>> PassCB = nullptr;
+        std::unique_ptr<UploadBuffer<ObjectType, true>> ObjectCB = nullptr;
 
         uint64_t Fence = 0;
     };
@@ -35,8 +46,8 @@ namespace Acorn{
         float    pad1;
         Vector2f RenderTargetSize;
         Vector2f InvRenderTargetSize;
-        float    Nearz;
-        float    Farz;
+        float    NearZ;
+        float    FarZ;
         float    TotalTime;
         float    DeltaTime;
     }; //size 36

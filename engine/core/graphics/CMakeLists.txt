@@ -1,6 +1,7 @@
 add_subdirectory(D3DGraphics/resource)
 include_directories(${ENGINE_DIR}/interface)
 include_directories(${ENGINE_DIR}/data_type)
+include_directories(${ENGINE_DIR}/core/timer)
 include_directories(${ENGINE_DIR}/core/camera)
 include_directories(${ENGINE_DIR}/core/graphics/D3DGraphics/resource)
 
@@ -18,6 +19,7 @@ add_library(GraphicsManager ${ALL_FILE})
 
 target_link_libraries(
     GraphicsManager
+    Timer
     DataType
     D3DResource
     D3D12.lib

@@ -21,9 +21,9 @@ namespace D3DUtil{
     };
 
     template<AlignmentType Alignment = AlignmentType::CONSTANT_BUFFER>
-    inline uint16_t CalcAlignment(uint16_t byteSize){
+    constexpr uint16_t CalcAlignment(uint16_t byteSize){
         uint16_t alignSize = static_cast<uint16_t>(Alignment);
-        return constexpr((byteSize + alignSize - 1) & ~(alignSize - 1));
+        return (byteSize + alignSize - 1) & ~(alignSize - 1);
     }
 
     Microsoft::WRL::ComPtr<ID3DBlob> LoadBinaryShader(const std::string &fileName);

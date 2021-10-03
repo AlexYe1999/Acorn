@@ -2,12 +2,14 @@
 #include"IRuntimeModule.hpp"
 #include"Vector.hpp"
 #include"Scene.hpp"
+#include"Timer.hpp"
 
 namespace Acorn{
 
     class GraphicsManager : public IRuntimeModule{
     public:
         virtual void Initialize() = 0;
+        virtual void Initialize(Scene* const scene, Timer* const timer) = 0;
         virtual void Finalize() = 0;
         virtual void Tick() = 0;
 
@@ -19,14 +21,12 @@ namespace Acorn{
         virtual void ClearDebugBuffers() = 0;
 
     protected:
-        virtual void InitializeBuffers(const Scene& scene) = 0;
+        virtual void InitializeBuffers() = 0;
         virtual void InitializeConstants() = 0;
         virtual void InitializeShaders() = 0;
         virtual void ClearBuffers() = 0;
         virtual void ClearShaders() = 0;
 
-        virtual void CalculateCameraMatrix() = 0;
-        virtual void CalculateLights() = 0;
         virtual void UpdateConstants() = 0;
         virtual void RenderBuffers() = 0;
 

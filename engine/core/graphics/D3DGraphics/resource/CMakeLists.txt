@@ -18,6 +18,7 @@ set(ALL_FILE
 
 add_library(D3DResource ${ALL_FILE})
 target_link_libraries(D3DResource
+    Camera
     DataType
     D3D12.lib
     DXGI.lib

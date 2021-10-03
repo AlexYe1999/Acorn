@@ -1,13 +1,13 @@
 #pragma once
 #include"../GraphicsManager.hpp"
-#include"Vector.hpp"
-#include"Scene.hpp"
+#include"Vertex.hpp"
+#include"UploadBuffer.hpp"
 #include"FrameResource.hpp"
 #include"d3dx12.h"
 #include"d3dUtil.hpp"
-#include"UploadBuffer.hpp"
 #include<wrl.h>
 #include<memory>
+#include<cassert>
 #include<string>
 #include<dxgi.h>
 #include<D3D12.h>
@@ -15,6 +15,8 @@
 
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
+    using FrameResourcePtr = std::unique_ptr<FrameResource<PassConstant, ObjectConstant>>;
+    using FrameResourcePtrVector = std::vector<FrameResourcePtr>;
 
     struct GraphicsParam{
         HWND MainWnd = nullptr;
@@ -28,21 +30,21 @@ namespace Acorn{
         DXGI_FORMAT BackBufferFormat   = DXGI_FORMAT_R8G8B8A8_UNORM;
         D3D12_VIEWPORT ViewPort = {};
         tagRECT ScissorRect = {};
+        std::string VSAddress = "";
+        std::string PSAddress = "";
     };
 
     class D3D12GraphicsManager : public GraphicsManager{
     public:
         static D3D12GraphicsManager* GetInstance() {
-            if(!ms_pInstance){
-                ms_pInstance = new D3D12GraphicsManager;
-                ms_pInstance->Initialize();
-            }
-            return ms_pInstance;
+            return ms_pInstance != nullptr
+                ? ms_pInstance : ms_pInstance = new D3D12GraphicsManager;
         }
 
         void ResetRtAndDs();
 
-        virtual void Initialize() override;
+        virtual void Initialize() override {};
+        virtual void Initialize(Scene* const scene, Timer* const timer) override;
         virtual void Finalize() override;
         virtual void Tick() override;
 
@@ -53,31 +55,31 @@ namespace Acorn{
         virtual void DrawBox(const Vector3f& bbMin, const Vector3f& bbMax, const Vector3f& color) override;
         virtual void ClearDebugBuffers() override;
 
-        void UpdataConstants(const float theta, const float phi);
-
     protected:
-        virtual void InitializeBuffers(const Scene& scene) override;
+        virtual void InitializeBuffers() override;
         virtual void InitializeConstants() override;
         virtual void InitializeShaders() override;
 
         virtual void ClearBuffers() override;
         virtual void ClearShaders() override;
 
-        virtual void CalculateCameraMatrix() override;
-        virtual void CalculateLights() override;
         virtual void UpdateConstants() override;
         virtual void RenderBuffers() override;
 
     protected:
-        void CreateDeviceAndFence();
-        void CreateCommandObject();
-        void CreateSwapChain();
-        void CreateRtAndDs();
-        void CreateRootSignature();
-        void ConfigurePipline();
+        void BuildDeviceAndFence();
+        void BuildCommandObject();
+        void BuildSwapChain();
+        void BuildRtAndDs();
+        void BuildRootSignature();
+        void BuildPSO();
 
     protected:
-        
+        void DrawOpaqueItems();
+        void UpdateMainPassConstBuffer();
+
+
+    protected:
         ComPtr<IDXGIFactory> m_pDXGIFactory;
         ComPtr<ID3D12Device> m_pD3D12Device;
         ComPtr<ID3D12Fence>  m_pD3D12Fence;
@@ -96,26 +98,25 @@ namespace Acorn{
 
         std::unique_ptr<ComPtr<ID3D12Resource>[]> m_pRtBuffer;
         ComPtr<ID3D12Resource> m_pDsBuffer;
-        ComPtr<ID3D12Resource> m_pVertexUploadBuffer;
-        ComPtr<ID3D12Resource> m_pIndexUploadBuffer;
-        ComPtr<ID3D12Resource> m_pVertexBuffer;
-        ComPtr<ID3D12Resource> m_pIndexBuffer;
-
-        std::unique_ptr<FrameResource[]> m_pFrameResource;
+        FrameResourcePtrVector m_pFrameResource;
 
         ComPtr<ID3D12RootSignature> m_pRootSignature;
 
         ComPtr<ID3DBlob> m_pVSByteCode;
         ComPtr<ID3DBlob> m_pPSByteCode;
-        ComPtr<ID3D12PipelineState> m_pPSO;
 
-        uint16_t m_uCurrentFence;
+        uint64_t m_uCurrentFence;
         uint16_t m_uCurrentBufferIndex; 
+        uint16_t m_uCurrFrameResourceIndex;
         uint16_t m_uRtvDescriptorSize;
         uint16_t m_uDsvDescriptorSize;
         uint16_t m_uCbvUavDescriptorSize;
 
-        PassConstant m_PassBuffer;
+    protected:
+        Scene* m_pScene;
+        Timer* m_pTimer;
+        PassConstant m_MainPassCB;
+        std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pPSOs;
 
     protected:
         D3D12GraphicsManager();
@@ -132,7 +133,6 @@ namespace Acorn{
 #if defined(_DEBUG)
 
     protected:
-
         void LogAdaptors();
         void LogAdaptorOutputs(const ComPtr<IDXGIAdapter>& adapter);
         void LogOutputDisplayModes(const ComPtr<IDXGIOutput>& output);

@@ -7,4 +7,5 @@ set(ALL_FILE
 )
 
 add_library(Camera ${ALL_FILE})
+target_link_libraries(Camera DataType)
 set_target_properties(Camera PROPERTIES FOLDER "engine/core") 
