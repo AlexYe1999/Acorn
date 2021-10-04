@@ -11,7 +11,7 @@ namespace D3DUtil{
 
     Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(
         ID3D12Device* device, ID3D12GraphicsCommandList* cmdList,
-        const void* initData, uint16_t byteSize,
+        const void* initData, uint64_t byteSize,
         Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer
     );
 
