@@ -60,7 +60,7 @@ void Win32App::InitApp(
     m_pGraphicsManager = Acorn::D3D12GraphicsManager::GetInstance();
 
     BuildScene();
-    m_pGraphicsManager->Initialize(m_pScene.get());
+    m_pGraphicsManager->Initialize(m_pScene.get(), &m_Timer);
 
     m_bIsInit = true;
 }
@@ -155,7 +155,7 @@ void Win32App::RunApp(){
         }
         case WM_DESTROY:{
             PostQuitMessage(0);
-            return 0;
+            break;
         }
 
     }
@@ -163,8 +163,10 @@ void Win32App::RunApp(){
 }
 
 void Win32App::BuildScene(){
+
+    m_pScene = std::make_unique<Acorn::Scene>();
     m_pScene->MainCamera.LookAt(
-        Acorn::Vector3f(0.0f, 10.0f, 20.0f),
+        Acorn::Vector3f(0.0f, 10.0f, 30.0f),
         Acorn::Vector3f(0.0f, 0.0f, 0.0f),
         Acorn::Vector3f(0.0f, 1.0f, 0.0f)
     );
@@ -175,13 +177,6 @@ void Win32App::BuildScene(){
 void Win32App::CreateMesh(){
     using GeoGenerator = LemonCube::GeometryGenerator;
 
-    m_pScene = std::make_unique<Acorn::Scene>();
-    m_pScene->MainCamera.LookAt(
-        Acorn::Vector3f(0.0f, 1.0f, 3.0f),
-        Acorn::Vector3f(0.0f, 0.0f, 3.0f),
-        Acorn::Vector3f(0.0f, 1.0f, 0.0f)
-    );
-
     std::unique_ptr<Acorn::Mesh> mesh = std::make_unique<Acorn::Mesh>();
     mesh->Name = "shapeGeo";
 
@@ -191,100 +186,126 @@ void Win32App::CreateMesh(){
     GeoGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
     GeoGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
 
+#if defined (_DEBUG)
+    {
+        std::stringstream oss;
+        oss << "box      index  count : " << box.indices.size() << std::endl;
+        oss << "grid     index  count : " << grid.indices.size()  << std::endl;
+        oss << "sphere   index  count : " << sphere.indices.size()  << std::endl;
+        oss << "cylinder index  count : " << cylinder.indices.size()  << std::endl;
+        oss << std::endl;
+        OutputDebugString(oss.str().c_str());
+    }
+#endif
+
     uint32_t totalVertexCount = box.vertices.size()
-        + box.vertices.size() + box.vertices.size() + cylinder.vertices.size();
-    uint32_t totalIndexCount = box.indices.size()
-        + box.indices.size() + box.indices.size() + cylinder.indices.size();
+        + grid.vertices.size() + sphere.vertices.size() + cylinder.vertices.size();
 
     std::vector<Acorn::VertexP3C4> vertices(totalVertexCount);
     std::vector<uint16_t> indices;
 
-    uint32_t VertexIndex  = 0;
     uint32_t indexOffset  = 0;
+    uint32_t vertexIndex  = 0;
     uint32_t vertexOffset = 0;
 
     Acorn::SubMesh boxSubmesh;
     boxSubmesh.IndexCount = box.indices.size();
     boxSubmesh.StartIndexLocation = indexOffset;
-    boxSubmesh.StartIndexLocation = vertexOffset;
+    boxSubmesh.StartVertexLocation = vertexOffset;
     indexOffset  += box.indices.size();
     vertexOffset += box.vertices.size();
     mesh->SubMesh["box"] = std::move(boxSubmesh);
     for(const auto& vertex : box.vertices){
-        vertices[VertexIndex].Position = vertex.position;
-        vertices[VertexIndex++].Color = Acorn::Vector4f(1.0f);
+        vertices[vertexIndex].Position = vertex.position;
+        vertices[vertexIndex++].Color = Acorn::Vector4f(1.0f);
     }
     indices.insert(indices.end(), box.indices.begin(), box.indices.end());
 
 #if defined (_DEBUG)
-    std::cout << "box index  count : " << box.indices.size() << std::endl;
-    std::cout << "box vertex count : " << box.vertices.size() << std::endl;
-    std::cout << "total index  count : " << vertices.size() << std::endl;
-    std::cout << "total vertex count : " << indices.size() << std::endl;
-    std::cout << std::endl;
+    {
+        std::stringstream oss;
+        oss << "box index    count : " << box.indices.size() << std::endl;
+        oss << "box vertex   count : " << box.vertices.size() << std::endl;
+        oss << "total index  count : " << indexOffset << std::endl;
+        oss << "total vertex count : " << vertexOffset << std::endl;
+        oss << std::endl;
+        OutputDebugString(oss.str().c_str());
+    }
 #endif
 
     Acorn::SubMesh gridSubmesh;
     gridSubmesh.IndexCount = grid.indices.size();
     gridSubmesh.StartIndexLocation = indexOffset;
-    gridSubmesh.StartIndexLocation = vertexOffset;
+    gridSubmesh.StartVertexLocation = vertexOffset;
     indexOffset  += grid.indices.size();
     vertexOffset += grid.vertices.size();
     mesh->SubMesh["grid"] = std::move(gridSubmesh);
     for(const auto& vertex : grid.vertices){
-        vertices[VertexIndex].Position = vertex.position;
-        vertices[VertexIndex++].Color = Acorn::Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
+        vertices[vertexIndex].Position = vertex.position;
+        vertices[vertexIndex++].Color = Acorn::Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
     }
     indices.insert(indices.end(), grid.indices.begin(), grid.indices.end());
 
 #if defined (_DEBUG)
-    std::cout << "grid index  count : " << grid.indices.size() << std::endl;
-    std::cout << "grid vertex count : " << grid.vertices.size() << std::endl;
-    std::cout << "total index  count : " << vertices.size() << std::endl;
-    std::cout << "total vertex count : " << indices.size() << std::endl;
-    std::cout << std::endl;
+    {
+        std::stringstream oss;
+        std::cout << "grid index   count : " << grid.indices.size() << std::endl;
+        std::cout << "grid vertex  count : " << grid.vertices.size() << std::endl;
+        std::cout << "total index  count : " << indexOffset << std::endl;
+        std::cout << "total vertex count : " << vertexOffset << std::endl;
+        std::cout << std::endl;
+        OutputDebugString(oss.str().c_str());
+    }
 #endif
 
     Acorn::SubMesh sphereSubmesh;
     sphereSubmesh.IndexCount = sphere.indices.size();
     sphereSubmesh.StartIndexLocation = indexOffset;
-    sphereSubmesh.StartIndexLocation = vertexOffset;
+    sphereSubmesh.StartVertexLocation = vertexOffset;
     indexOffset  += sphere.indices.size();
     vertexOffset += sphere.vertices.size();
     mesh->SubMesh["sphere"] = std::move(sphereSubmesh);
     for(const auto& vertex : sphere.vertices){
-        vertices[VertexIndex].Position = vertex.position;
-        vertices[VertexIndex++].Color = Acorn::Vector4f(1.0f, 0.0f, 1.0f, 1.0f);
+        vertices[vertexIndex].Position = vertex.position;
+        vertices[vertexIndex++].Color = Acorn::Vector4f(1.0f, 0.0f, 1.0f, 1.0f);
     }
     indices.insert(indices.end(), sphere.indices.begin(), sphere.indices.end());
 
 #if defined (_DEBUG)
-    std::cout << "sphere index  count : " << sphere.indices.size() << std::endl;
-    std::cout << "sphere vertex count : " << sphere.vertices.size() << std::endl;
-    std::cout << "total index  count : " << vertices.size() << std::endl;
-    std::cout << "total vertex count : " << indices.size() << std::endl;
-    std::cout << std::endl;
+    {
+        std::stringstream oss;
+        oss << "sphere index  count : " << sphere.indices.size() << std::endl;
+        oss << "sphere vertex count : " << sphere.vertices.size() << std::endl;
+        oss << "total index   count : " << indexOffset << std::endl;
+        oss << "total vertex  count : " << vertexOffset << std::endl;
+        oss << std::endl;
+        OutputDebugString(oss.str().c_str());
+    }
 #endif
 
     Acorn::SubMesh cylinderSubmesh;
     cylinderSubmesh.IndexCount = cylinder.indices.size();
     cylinderSubmesh.StartIndexLocation = indexOffset;
-    cylinderSubmesh.StartIndexLocation = vertexOffset;
+    cylinderSubmesh.StartVertexLocation = vertexOffset;
     indexOffset  += cylinder.indices.size();
     vertexOffset += cylinder.vertices.size();
     mesh->SubMesh["cylinder"] = std::move(cylinderSubmesh);
     for(const auto& vertex : cylinder.vertices){
-        vertices[VertexIndex].Position = vertex.position;
-        vertices[VertexIndex++].Color = Acorn::Vector4f(0.0f, 1.0f, 1.0f, 1.0f);
+        vertices[vertexIndex].Position = vertex.position;
+        vertices[vertexIndex++].Color = Acorn::Vector4f(0.0f, 1.0f, 1.0f, 1.0f);
     }
     indices.insert(indices.end(), cylinder.indices.begin(), cylinder.indices.end());
 
 #if defined (_DEBUG)
-    std::cout << "cylinder index  count : " << cylinder.indices.size() << std::endl;
-    std::cout << "cylinder vertex count : " << cylinder.vertices.size() << std::endl;
-    std::cout << "total index  count : " << vertices.size() << std::endl;
-    std::cout << "total vertex count : " << indices.size() << std::endl;
-    std::cout << std::endl;
+    {
+        std::stringstream oss;
+        std::cout << "cylinder index  count : " << cylinder.indices.size() << std::endl;
+        std::cout << "cylinder vertex count : " << cylinder.vertices.size() << std::endl;
+        std::cout << "total index     count : " << indexOffset << std::endl;
+        std::cout << "total vertex    count : " << vertexOffset << std::endl;
+        std::cout << std::endl;
+        OutputDebugString(oss.str().c_str());
+    }
 #endif
 
     const uint32_t vertexByteSize = sizeof(Acorn::VertexP3C4) * vertices.size();
@@ -308,26 +329,26 @@ void Win32App::CreateRenderItem(){
     uint16_t objIndex = 0;
 
     auto box = std::make_unique<Acorn::RenderItem>();
-    box->WorldMatrix = DirectX::XMMatrixScaling(2.0f, 2.0f, 2.0f)
-        * DirectX::XMMatrixTranslation(2.0f, 2.0f, 2.0f);
+    box->World = DirectX::XMMatrixScaling(2.0f, 2.0f, 2.0f)
+        * DirectX::XMMatrixTranslation(0.0f, 2.0f, 0.0f);
     box->Mesh = m_pScene->Meshes["shapeGeo"].get();
     box->ObjCBIndex = objIndex++;
     box->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     box->IndexCount = box->Mesh->SubMesh["box"].IndexCount;
     box->StartVertexLocation = box->Mesh->SubMesh["box"].StartVertexLocation;
     box->StartIndexLocation = box->Mesh->SubMesh["box"].StartIndexLocation;
-    box->DirtyCount = g_GraphicsConfig.FrameResorceCount;
+    box->DirtyCount = g_GraphicsConfig.FrameResourceCount;
     m_pScene->OpaqueRenderItems.push_back(std::move(box.get()));
     m_pScene->AllRenderItems.push_back(std::move(box));
 
     auto grid = std::make_unique<Acorn::RenderItem>();
-    grid->Mesh = m_pScene->Meshes["shapGeo"].get();
+    grid->Mesh = m_pScene->Meshes["shapeGeo"].get();
     grid->ObjCBIndex = objIndex++;
     grid->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     grid->IndexCount = grid->Mesh->SubMesh["grid"].IndexCount;
     grid->StartVertexLocation = grid->Mesh->SubMesh["grid"].StartVertexLocation;
     grid->StartIndexLocation = grid->Mesh->SubMesh["grid"].StartIndexLocation;
-    grid->DirtyCount = g_GraphicsConfig.FrameResorceCount;
+    grid->DirtyCount = g_GraphicsConfig.FrameResourceCount;
     m_pScene->OpaqueRenderItems.push_back(std::move(grid.get()));
     m_pScene->AllRenderItems.push_back(std::move(grid));
 
@@ -337,7 +358,7 @@ void Win32App::CreateRenderItem(){
         DirectX::XMMATRIX leftCylWorld =
             DirectX::XMMatrixTranslation(-5.0f, 1.5f, -10.0f + i * 5.0f);
 
-        leftCylRitem->WorldMatrix = leftCylWorld;
+        leftCylRitem->World = leftCylWorld;
         leftCylRitem->Mesh = m_pScene->Meshes["shapeGeo"].get();
         leftCylRitem->ObjCBIndex = objIndex++;
         leftCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -347,15 +368,15 @@ void Win32App::CreateRenderItem(){
             leftCylRitem->Mesh->SubMesh["cylinder"].StartVertexLocation;
         leftCylRitem->StartIndexLocation =
             leftCylRitem->Mesh->SubMesh["cylinder"].StartIndexLocation;
-        leftCylRitem->DirtyCount = g_GraphicsConfig.FrameResorceCount;
+        leftCylRitem->DirtyCount = g_GraphicsConfig.FrameResourceCount;
         m_pScene->OpaqueRenderItems.push_back(std::move(leftCylRitem.get()));
         m_pScene->AllRenderItems.push_back(std::move(leftCylRitem));
 
         auto rightCylRitem = std::make_unique<Acorn::RenderItem>();
         DirectX::XMMATRIX RightCylWorld =
-            DirectX::XMMatrixTranslation(-+5.0f, 1.5f, -10.0f + i * 5.0f);
+            DirectX::XMMatrixTranslation(+5.0f, 1.5f, -10.0f + i * 5.0f);
 
-        rightCylRitem->WorldMatrix = RightCylWorld;
+        rightCylRitem->World = RightCylWorld;
         rightCylRitem->Mesh = m_pScene->Meshes["shapeGeo"].get();
         rightCylRitem->ObjCBIndex = objIndex++;
         rightCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -365,7 +386,7 @@ void Win32App::CreateRenderItem(){
             rightCylRitem->Mesh->SubMesh["cylinder"].StartVertexLocation;
         rightCylRitem->StartIndexLocation =
             rightCylRitem->Mesh->SubMesh["cylinder"].StartIndexLocation;
-        rightCylRitem->DirtyCount = g_GraphicsConfig.FrameResorceCount;
+        rightCylRitem->DirtyCount = g_GraphicsConfig.FrameResourceCount;
         m_pScene->OpaqueRenderItems.push_back(std::move(rightCylRitem.get()));
         m_pScene->AllRenderItems.push_back(std::move(rightCylRitem));
 
@@ -373,7 +394,7 @@ void Win32App::CreateRenderItem(){
         DirectX::XMMATRIX leftSphereWorld =
             DirectX::XMMatrixTranslation(-5.0f, 3.5f, -10.0f + i * 5.0f);
 
-        leftSphereRitem->WorldMatrix = leftSphereWorld;
+        leftSphereRitem->World = leftSphereWorld;
         leftSphereRitem->Mesh = m_pScene->Meshes["shapeGeo"].get();
         leftSphereRitem->ObjCBIndex = objIndex++;
         leftSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -383,53 +404,46 @@ void Win32App::CreateRenderItem(){
             leftSphereRitem->Mesh->SubMesh["sphere"].StartVertexLocation;
         leftSphereRitem->StartIndexLocation =
             leftSphereRitem->Mesh->SubMesh["sphere"].StartIndexLocation;
-        leftSphereRitem->DirtyCount = g_GraphicsConfig.FrameResorceCount;
+        leftSphereRitem->DirtyCount = g_GraphicsConfig.FrameResourceCount;
         m_pScene->OpaqueRenderItems.push_back(std::move(leftSphereRitem.get()));
         m_pScene->AllRenderItems.push_back(std::move(leftSphereRitem));
 
         auto rightSphereRitem = std::make_unique<Acorn::RenderItem>();
         DirectX::XMMATRIX RightSphereWorld =
-            DirectX::XMMatrixTranslation(-+5.0f, 3.5f, -10.0f + i * 5.0f);
+            DirectX::XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i * 5.0f);
 
-        rightCylRitem->WorldMatrix = RightSphereWorld;
-        rightCylRitem->Mesh = m_pScene->Meshes["shapeGeo"].get();
-        rightCylRitem->ObjCBIndex = objIndex++;
-        rightCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        rightCylRitem->IndexCount = 
-            rightCylRitem->Mesh->SubMesh["sphere"].IndexCount;
-        rightCylRitem->StartVertexLocation =
-            rightCylRitem->Mesh->SubMesh["sphere"].StartVertexLocation;
-        rightCylRitem->StartIndexLocation =
-            rightCylRitem->Mesh->SubMesh["sphere"].StartIndexLocation;
-        rightCylRitem->DirtyCount = g_GraphicsConfig.FrameResorceCount;
-        m_pScene->OpaqueRenderItems.push_back(std::move(rightCylRitem.get()));
-        m_pScene->AllRenderItems.push_back(std::move(rightCylRitem));
+        rightSphereRitem->World = RightSphereWorld;
+        rightSphereRitem->Mesh = m_pScene->Meshes["shapeGeo"].get();
+        rightSphereRitem->ObjCBIndex = objIndex++;
+        rightSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        rightSphereRitem->IndexCount = 
+            rightSphereRitem->Mesh->SubMesh["sphere"].IndexCount;
+        rightSphereRitem->StartVertexLocation =
+            rightSphereRitem->Mesh->SubMesh["sphere"].StartVertexLocation;
+        rightSphereRitem->StartIndexLocation =
+            rightSphereRitem->Mesh->SubMesh["sphere"].StartIndexLocation;
+        rightSphereRitem->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+        m_pScene->OpaqueRenderItems.push_back(std::move(rightSphereRitem.get()));
+        m_pScene->AllRenderItems.push_back(std::move(rightSphereRitem));
     }
 
 }
 
 inline void Win32App::UpdateInput(){
-    static int x = 0;
-    static int y = 0;
-    static int x_t = 0;
-    static int y_t = 0;
 
+    static Acorn::Point2<int16_t> deltaP(0, 0);
     if(m_Mouse.IsKeyDown(0)){
-        Acorn::Point2<int16_t> p = m_Mouse.GetDeltaPosition();
-        x_t = p.x;
-        y_t = p.y;
+        deltaP = m_Mouse.GetDeltaPosition();
     }
     else{
-        x += x_t;
-        y += y_t;
-        x_t = 0;
-        y_t = 0; 
+        deltaP = Acorn::Point2<int16_t>(0, 0);
     }
 
-    float theta = 0.25f * DirectX::XMConvertToRadians(x + x_t);
-    float phi = 0.25f * DirectX::XMConvertToRadians(y + y_t);
+    float theta = 0.001f * DirectX::XMConvertToRadians(deltaP.x);
+    float phi = 0.001f * DirectX::XMConvertToRadians(deltaP.y);
     m_pScene->MainCamera.RotateY(theta);
-    m_pScene->MainCamera.Pitch(-phi);
+    m_pScene->MainCamera.Pitch(phi);
+
 }
 
 LRESULT CALLBACK Win32App::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){

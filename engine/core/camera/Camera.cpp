@@ -5,8 +5,8 @@ namespace Acorn{
     Camera::Camera() 
         : 
         m_bIsViewDirty(true),
-        m_fNearZ(0.0f), m_fFarZ(0.0f),
-        m_fAspect(0.0f), m_fFov(0.0f),
+        m_fNearZ(1.0f), m_fFarZ(1000.0f),
+        m_fAspect(1.0f), m_fFov(0.25f * 3.1415926535f),
         m_fNearWindowHeight(0.0f),
         m_fFarWindowHeight(0.0f),
         m_vUp(0.0f, 1.0f, 0.0f),
@@ -14,7 +14,7 @@ namespace Acorn{
         m_vLookAt(0.0f, 0.0f, 1.0f),
         m_vPosition(0.0f, 0.0f, 0.0f)
     {
-        SetLens(0.25f * 3.1415926535f, 1.0f, 1.0f, 1000.0f);
+        SetLens(1.0f, 1000.0f, 1.0f, 0.25f * 3.1415926535f);
     }
 
     void Camera::SetLens(
@@ -29,14 +29,17 @@ namespace Acorn{
         m_fNearWindowHeight = 2.0f * m_fNearZ * tanf(0.5f * m_fFov);
         m_fFarWindowHeight = 2.0f * m_fFarZ * tanf(0.5f * m_fFov);
 
-        m_mViewMatrix = XMMatrixPerspectiveFovLH(m_fFov, m_fAspect, m_fNearZ, m_fFarZ);
+        m_mProjMatrix = XMMatrixPerspectiveFovLH(m_fFov, m_fAspect, m_fNearZ, m_fFarZ);
     }
 
-    void Camera::Walk(const Vector3f& direction, const float length){
+    void Camera::Walk(Vector3f direction, const float length){
+        direction = m_vRight*direction.x 
+            + m_vUp*direction.y + m_vLookAt*direction.z;
         XMVECTOR l = XMVectorReplicate(length);
         XMVECTOR d = XMLoadFloat3(&direction);
         XMVECTOR p = XMLoadFloat3(&m_vPosition);
-        XMStoreFloat3(&m_vPosition, XMVectorMultiplyAdd(l, d, p));
+        DirectX::XMStoreFloat3(&m_vPosition, XMVectorMultiplyAdd(l, d, p));
+
         m_bIsViewDirty = true;
     }
 
@@ -59,10 +62,10 @@ namespace Acorn{
         XMVECTOR Right = XMVector3Normalize(XMVector3Cross(Up, LookAt));
         Up = XMVector3Cross(LookAt, Right);
 
-        XMStoreFloat3(&m_vPosition, Position);
-        XMStoreFloat3(&m_vLookAt, LookAt);
-        XMStoreFloat3(&m_vRight, Right);
-        XMStoreFloat3(&m_vUp, Up);
+        m_vPosition = Position;
+        m_vLookAt   = LookAt;
+        m_vRight    = Right;
+        m_vUp       = Up;
 
         m_bIsViewDirty = true;
     }
@@ -74,8 +77,8 @@ namespace Acorn{
     void Camera::Pitch(float angle){
         XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&m_vRight), angle);
 
-        XMStoreFloat3(&m_vUp, XMVector3TransformNormal(XMLoadFloat3(&m_vUp), R));
-        XMStoreFloat3(&m_vLookAt, XMVector3TransformNormal(XMLoadFloat3(&m_vLookAt), R));
+        m_vUp =  XMVector3TransformNormal(XMLoadFloat3(&m_vUp), R);
+        m_vLookAt = XMVector3TransformNormal(XMLoadFloat3(&m_vLookAt), R);
 
         m_bIsViewDirty = true;
     }
@@ -83,9 +86,9 @@ namespace Acorn{
     void Camera::RotateY(float angle){
         XMMATRIX R = XMMatrixRotationY(angle);
 
-        XMStoreFloat3(&m_vLookAt, XMVector3TransformNormal(XMLoadFloat3(&m_vLookAt), R));
-        XMStoreFloat3(&m_vRight, XMVector3TransformNormal(XMLoadFloat3(&m_vRight), R));
-        XMStoreFloat3(&m_vUp, XMVector3TransformNormal(XMLoadFloat3(&m_vUp), R));
+        m_vLookAt = XMVector3TransformNormal(XMLoadFloat3(&m_vLookAt), R);
+        m_vRight  = XMVector3TransformNormal(XMLoadFloat3(&m_vRight), R);
+        m_vUp     = XMVector3TransformNormal(XMLoadFloat3(&m_vUp), R);
 
         m_bIsViewDirty = true;
     }
@@ -99,7 +102,7 @@ namespace Acorn{
     }
 
     const Matrix4f& Camera::GetProjMatrix() const{
-        return m_mViewMatrix;
+        return m_mProjMatrix;
     }
 
     void Camera::CalcViewMatrix(){

@@ -5,8 +5,8 @@ namespace Acorn{
         D3D12_VERTEX_BUFFER_VIEW vbv;
 
         vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
-        vbv.StrideInBytes = VertexBufferByteSize;
-        vbv.SizeInBytes = VertexByteStride;
+        vbv.StrideInBytes  = VertexByteStride;
+        vbv.SizeInBytes    = VertexBufferByteSize;
         return vbv;
     }
 

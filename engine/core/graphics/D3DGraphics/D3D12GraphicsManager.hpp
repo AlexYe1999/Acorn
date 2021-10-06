@@ -23,8 +23,8 @@ namespace Acorn{
         uint16_t WndWidth  = 500;
         uint16_t WndHeight = 500;
         uint8_t AdapterIndex = 1;
-        uint8_t SwapChainBufferCount = 2;
-        uint8_t FrameResorceCount = 3;
+        uint8_t BackBufferCount = 2;
+        uint8_t FrameResourceCount = 3;
         D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_12_0;
         DXGI_FORMAT DepthStansilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
         DXGI_FORMAT BackBufferFormat   = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -106,7 +106,7 @@ namespace Acorn{
         ComPtr<ID3DBlob> m_pPSByteCode;
 
         uint64_t m_uCurrentFence;
-        uint16_t m_uCurrentBufferIndex; 
+        uint16_t m_uCurrentBackBufferIndex; 
         uint16_t m_uCurrFrameResourceIndex;
         uint16_t m_uRtvDescriptorSize;
         uint16_t m_uDsvDescriptorSize;

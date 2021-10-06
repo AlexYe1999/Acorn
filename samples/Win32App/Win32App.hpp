@@ -13,6 +13,7 @@
 #include<string>
 #include<memory>
 #include<iostream>
+#include<sstream>
 #include<unordered_map>
 #include<windows.h>
 #include<windowsx.h>

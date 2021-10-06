@@ -11,12 +11,13 @@ namespace Acorn{
         m_pRtBuffer(),
         m_pFrameResource(),
         m_uCurrentFence(0),
-        m_uCurrentBufferIndex(0),
+        m_uCurrentBackBufferIndex(0),
         m_uCurrFrameResourceIndex(0),
         m_uRtvDescriptorSize(0),
         m_uDsvDescriptorSize(0),
         m_uCbvUavDescriptorSize(0),
-        m_pScene(nullptr)
+        m_pScene(nullptr),
+        m_pTimer(nullptr)
     {}
 
     void D3D12GraphicsManager::ResetRtAndDs(){
@@ -26,22 +27,20 @@ namespace Acorn{
         m_pD3D12GraphicsCommandList->Reset(m_pD3D12CommandAllocator.Get(), nullptr);
 
         	// Release the previous resources we will be recreating.
-        for(int i = 0; i < g_GraphicsConfig.SwapChainBufferCount; ++i)
+        for(int i = 0; i < g_GraphicsConfig.BackBufferCount; ++i)
             m_pRtBuffer[i].Reset();
         m_pDsBuffer.Reset();
 
         m_pDXGISwapChain->ResizeBuffers(
-            g_GraphicsConfig.SwapChainBufferCount,
+            g_GraphicsConfig.BackBufferCount,
             g_GraphicsConfig.WndWidth, g_GraphicsConfig.WndHeight,
             g_GraphicsConfig.BackBufferFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
         );
 
-        m_uCurrentBufferIndex = 0;
-
         D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
         rtvHeapDesc.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
         rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.SwapChainBufferCount;
+        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.BackBufferCount;
         rtvHeapDesc.NodeMask = 0;
 
         m_pD3D12Device->CreateDescriptorHeap(
@@ -49,13 +48,13 @@ namespace Acorn{
         );
 
         //TODO: Use MemoryManager to alloc Memory
-        m_pRtBuffer.reset(new ComPtr<ID3D12Resource>[g_GraphicsConfig.SwapChainBufferCount]);
+        m_pRtBuffer.reset(new ComPtr<ID3D12Resource>[g_GraphicsConfig.BackBufferCount]);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart()
         );
 
-        for(uint8_t index = 0; index < g_GraphicsConfig.SwapChainBufferCount; index++){
+        for(uint8_t index = 0; index < g_GraphicsConfig.BackBufferCount; index++){
             m_pDXGISwapChain->GetBuffer(
                 index, IID_PPV_ARGS(m_pRtBuffer[index].GetAddressOf())
             );
@@ -186,13 +185,11 @@ namespace Acorn{
 
     void D3D12GraphicsManager::Render(){
 
-        auto& cmdListAlloc = m_pFrameResource[m_uCurrFrameResourceIndex]->CmdListAlloc;
+        auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
 
-        FlushCommandQueue();
-
-        cmdListAlloc->Reset();
+        currFrameResource->CmdListAlloc->Reset();
         m_pD3D12GraphicsCommandList->Reset(
-            cmdListAlloc.Get(), m_pPSOs["defaultPSO"].Get()
+            currFrameResource->CmdListAlloc.Get(), m_pPSOs["defaultPSO"].Get()
         );
 
         m_pD3D12GraphicsCommandList->RSSetViewports(1, &g_GraphicsConfig.ViewPort);
@@ -200,7 +197,7 @@ namespace Acorn{
 
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                m_pRtBuffer[m_uCurrentBufferIndex].Get(), 
+                m_pRtBuffer[m_uCurrentBackBufferIndex].Get(), 
                 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
         );
 
@@ -223,7 +220,7 @@ namespace Acorn{
         m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
 
         const auto passOffset = 
-            m_pScene->OpaqueRenderItems.size() * g_GraphicsConfig.FrameResorceCount;
+            m_pScene->OpaqueRenderItems.size() * g_GraphicsConfig.FrameResourceCount;
         auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
             m_pCbvHeap->GetGPUDescriptorHandleForHeapStart()
         );
@@ -237,8 +234,9 @@ namespace Acorn{
         
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                m_pRtBuffer[m_uCurrentBufferIndex].Get(), 
-                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
+                m_pRtBuffer[m_uCurrentBackBufferIndex].Get(), 
+                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT
+            )
         );
 
         m_pD3D12GraphicsCommandList->Close();
@@ -248,12 +246,14 @@ namespace Acorn{
 
         m_pDXGISwapChain->Present(0, 0);
 
-        m_uCurrentBufferIndex =
-            (m_uCurrentBufferIndex + 1) % g_GraphicsConfig.SwapChainBufferCount;
+        currFrameResource->Fence = ++m_uCurrentFence;
 
         m_uCurrFrameResourceIndex =
-            (m_uCurrFrameResourceIndex + 1) % g_GraphicsConfig.FrameResorceCount;
+            (m_uCurrFrameResourceIndex + 1) % g_GraphicsConfig.FrameResourceCount;
+        m_uCurrentBackBufferIndex =
+            (m_uCurrentBackBufferIndex + 1) % g_GraphicsConfig.BackBufferCount;
 
+        m_pD3D12CommandQueue->Signal(m_pD3D12Fence.Get(), m_uCurrentFence);
     }
 
     void D3D12GraphicsManager::DrawLine(const Vector3f &from, const Vector3f &to, const Vector3f &color){
@@ -273,6 +273,7 @@ namespace Acorn{
         assert(m_pScene != nullptr);
 
         for(auto& mesh : m_pScene->Meshes){
+
             mesh.second->VertexBufferGPU =
                 D3DUtil::CreateDefaultBuffer(
                     m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
@@ -285,7 +286,7 @@ namespace Acorn{
                 D3DUtil::CreateDefaultBuffer(
                     m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
                     mesh.second->IndexBufferCPU->GetBufferPointer(),
-                    mesh.second->VertexBufferCPU->GetBufferSize(),
+                    mesh.second->IndexBufferCPU->GetBufferSize(),
                     mesh.second->IndexBufferUploader
                 );
         }
@@ -307,7 +308,7 @@ namespace Acorn{
 
     void D3D12GraphicsManager::InitializeConstants(){
 
-        const auto& frameResourceCount = g_GraphicsConfig.FrameResorceCount;
+        const auto& frameResourceCount = g_GraphicsConfig.FrameResourceCount;
         for(int index = 0; index < frameResourceCount; index++){
             m_pFrameResource.push_back(std::move(
                 std::make_unique<FrameResource<PassConstant, ObjectConstant>>(
@@ -316,7 +317,7 @@ namespace Acorn{
         }
 
         uint16_t objCount = m_pScene->OpaqueRenderItems.size();
-        uint16_t numDescriptor = (objCount+1) * g_GraphicsConfig.FrameResorceCount;
+        uint16_t numDescriptor = (objCount+1) * frameResourceCount;
 
         D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
         cbvHeapDesc.NumDescriptors = numDescriptor;
@@ -370,9 +371,21 @@ namespace Acorn{
     
     void D3D12GraphicsManager::UpdateConstants(){
         
+        auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+
+        if(currFrameResource->Fence != 0 
+            && m_pD3D12Fence->GetCompletedValue() < currFrameResource->Fence){
+
+            HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+            m_pD3D12Fence->SetEventOnCompletion(currFrameResource->Fence, eventHandle);
+            WaitForSingleObject(eventHandle, INFINITE);
+            CloseHandle(eventHandle);
+
+        }
+
         UpdateMainPassConstBuffer();
 
-        auto currObjectCB = m_pFrameResource[m_uCurrentBufferIndex]->ObjectCB.get();
+        auto ObjectCB = currFrameResource->ObjectCB.get();
 
         for(auto& item : m_pScene->OpaqueRenderItems){
 
@@ -382,7 +395,7 @@ namespace Acorn{
                 ObjectConstant objConstant;
                 XMStoreFloat4x4(&objConstant.World, XMMatrixTranspose(world));
 
-                currObjectCB->CopyData(item->ObjCBIndex, objConstant);
+                ObjectCB->CopyData(item->ObjCBIndex, objConstant);
 
                 item->DirtyCount--;
             }
@@ -449,7 +462,7 @@ namespace Acorn{
         swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
         swapChainDesc.SampleDesc.Count   = 1;
         swapChainDesc.SampleDesc.Quality = 0;
-        swapChainDesc.BufferCount = g_GraphicsConfig.SwapChainBufferCount;
+        swapChainDesc.BufferCount = g_GraphicsConfig.BackBufferCount;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapChainDesc.OutputWindow = g_GraphicsConfig.MainWnd;
         swapChainDesc.Windowed = true;
@@ -467,7 +480,7 @@ namespace Acorn{
         D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
         rtvHeapDesc.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
         rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.SwapChainBufferCount;
+        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.BackBufferCount;
         rtvHeapDesc.NodeMask = 0;
 
         m_pD3D12Device->CreateDescriptorHeap(
@@ -476,13 +489,13 @@ namespace Acorn{
 
         //TODO: Use MemoryManager to alloc Memory
         m_pRtBuffer = 
-            std::make_unique<ComPtr<ID3D12Resource>[]>(g_GraphicsConfig.SwapChainBufferCount);
+            std::make_unique<ComPtr<ID3D12Resource>[]>(g_GraphicsConfig.BackBufferCount);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart()
         );
 
-        for(uint8_t index = 0; index < g_GraphicsConfig.SwapChainBufferCount; index++){
+        for(uint8_t index = 0; index < g_GraphicsConfig.BackBufferCount; index++){
             m_pDXGISwapChain->GetBuffer(
                 index, IID_PPV_ARGS(m_pRtBuffer[index].GetAddressOf())
             );
@@ -543,16 +556,17 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::BuildRootSignature(){
-        CD3DX12_ROOT_PARAMETER slotRootParam[1];
-        CD3DX12_DESCRIPTOR_RANGE cbvTable;
-        cbvTable.Init(
-            D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-            2, 0
-        );
-        slotRootParam[0].InitAsDescriptorTable(1, &cbvTable);
+        CD3DX12_ROOT_PARAMETER slotRootParam[2];
+        CD3DX12_DESCRIPTOR_RANGE cbvTable0;
+        cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 
+        CD3DX12_DESCRIPTOR_RANGE cbvTable1;
+        cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+
+        slotRootParam[0].InitAsDescriptorTable(1, &cbvTable0);
+        slotRootParam[1].InitAsDescriptorTable(1, &cbvTable1);
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
-            1, slotRootParam, 0, nullptr,
+            2, slotRootParam, 0, nullptr,
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
         );
 
@@ -579,7 +593,7 @@ namespace Acorn{
         D3D12_RASTERIZER_DESC rasterDesc;
         rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
         rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
-        rasterDesc.FrontCounterClockwise = true;
+        rasterDesc.FrontCounterClockwise = false;
         rasterDesc.DepthBias = 0;
         rasterDesc.DepthBiasClamp = 0.0f;
         rasterDesc.SlopeScaledDepthBias = 0.0f;
@@ -636,7 +650,7 @@ namespace Acorn{
         constexpr uint16_t objCBByteSize = 
             D3DUtil::CalcAlignment(sizeof(ObjectConstant));
         uint16_t objCBByteOffset = 
-            m_pScene->OpaqueRenderItems.size() * m_uCurrentBufferIndex;
+            m_pScene->OpaqueRenderItems.size() * m_uCurrFrameResourceIndex;
 
         for(const auto& item : m_pScene->OpaqueRenderItems){
             m_pD3D12GraphicsCommandList->IASetVertexBuffers(0, 1, &item->Mesh->VertexBufferView());
@@ -659,8 +673,8 @@ namespace Acorn{
 
         XMMATRIX view = XMLoadFloat4x4(&camera.GetViewMatrix());
         XMMATRIX proj = XMLoadFloat4x4(&camera.GetProjMatrix());
-
         XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+
         XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
         XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
         XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
@@ -681,15 +695,18 @@ namespace Acorn{
         m_MainPassCB.TotalTime = m_pTimer->TotalTime();
         m_MainPassCB.DeltaTime = m_pTimer->DeltaTime();
 
-        auto PassCB = m_pFrameResource[m_uCurrentBufferIndex]->PassCB.get();
+        m_MainPassCB.pad1 = m_uCurrFrameResourceIndex;
+
+        auto PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB.get();
         PassCB->CopyData(0, m_MainPassCB);
+
     }
 
     inline D3D12_CPU_DESCRIPTOR_HANDLE 
     D3D12GraphicsManager::CurrentBackBufferView() const{
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-            m_uCurrentBufferIndex, m_uRtvDescriptorSize
+            m_uCurrentBackBufferIndex, m_uRtvDescriptorSize
         );
     }
 

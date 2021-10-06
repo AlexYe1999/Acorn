@@ -22,7 +22,7 @@ namespace Acorn{
             );
 
             PassCB = std::make_unique<UploadBuffer<PassType, true>>(device, passCount);
-            OjectCB = std::make_unique<UploadBuffer<ObjectType, true>>(device, objectCount);
+            ObjectCB = std::make_unique<UploadBuffer<ObjectType, true>>(device, objectCount);
         }
         FrameResource(const FrameResource &frame) = delete;
         FrameResource& operator = (const FrameResource& frame) = delete;
@@ -50,10 +50,12 @@ namespace Acorn{
         float    FarZ;
         float    TotalTime;
         float    DeltaTime;
-    }; //size 36
+        PassConstant() = default;
+    }; //size 6*16 + 4 + 4 + 4 = 108*4 = 432
 
     struct ObjectConstant{
         Matrix4f World;
-    }; // size 4
+        ObjectConstant() = default;
+    }; // size 16*4 = 64
 
 }
