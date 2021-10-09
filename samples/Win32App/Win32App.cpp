@@ -24,8 +24,16 @@ void Win32App::InitApp(
     
     WNDCLASS wc = { };
 
-    wc.lpfnWndProc   = WindowProc;
-    wc.hInstance     = m_pAppInstance;
+    WNDCLASS wc = {};
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = WindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = appInstance;
+    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
     wc.lpszClassName = CLASS_NAME.c_str();
 
     RegisterClass(&wc);
