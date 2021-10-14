@@ -7,17 +7,20 @@
 #include<windowsx.h>
 
 template<typename DerivedClass>
-class AppFremework{
+class AppFramework{
 public:
     static DerivedClass& GetInstance();
-    virtual void InitApp(
+    virtual void InitWnd(
         const HINSTANCE appInstance, int nCmdShow, 
         const int16_t width, const int16_t height,
-        const std::string wndClassName, const std::string wndText
+        const std::string& wndClassName, const std::string& wndText
     );
 
     virtual void RunApp();
 
+    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
+        return GetInstance().MsgProc(hwnd, uMsg, wParam, lParam);
+    }
 protected:
     bool m_bIsInit;
     bool m_bIsQuit;
@@ -32,19 +35,17 @@ protected:
     }
 
 protected:
-    AppFremework();
-    AppFremework(DerivedClass&& app) = delete;
-    AppFremework(const DerivedClass& app) = delete;
-    AppFremework& operator =(const DerivedClass& app) = delete;
-    virtual ~AppFremework() = default;
+    AppFramework();
+    AppFramework(DerivedClass&& app) = delete;
+    AppFramework(const DerivedClass& app) = delete;
+    AppFramework& operator =(DerivedClass&& app) = delete;
+    AppFramework& operator =(const DerivedClass& app) = delete;
+    virtual ~AppFramework() = default;
 
-    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
-        return GetInstance().MsgProc(hwnd, uMsg, wParam, lParam);
-    }
 };
 
 template<typename DerivedClass>
-AppFremework<DerivedClass>::AppFremework()
+AppFramework<DerivedClass>::AppFramework()
     :
     m_bIsInit(false), m_bIsQuit(false),
     m_pAppInstance(), m_hWnd(),
@@ -52,17 +53,17 @@ AppFremework<DerivedClass>::AppFremework()
 {}
 
 template<typename DerivedClass>
-inline DerivedClass& AppFremework<DerivedClass>::GetInstance(){
+inline DerivedClass& AppFramework<DerivedClass>::GetInstance(){
     static DerivedClass s_Instance;
     return s_Instance;
 }
 
 template<typename DerivedClass>
-void AppFremework<DerivedClass>::InitApp(
+void AppFramework<DerivedClass>::InitWnd(
         const HINSTANCE appInstance, int nCmdShow, 
         const int16_t width, const int16_t height,
-        const std::string wndClassName,
-        const std::string wndText
+        const std::string& wndClassName,
+        const std::string& wndText
 ){
     assert(width > 0 && height > 0);
     m_nWndWidth = width;
@@ -98,7 +99,7 @@ void AppFremework<DerivedClass>::InitApp(
 }
 
 template<typename DerivedClass>
-void AppFremework<DerivedClass>::RunApp(){
+void AppFramework<DerivedClass>::RunApp(){
 
     while(!m_bIsQuit){
         MSG msg = {};

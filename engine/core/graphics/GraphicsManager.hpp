@@ -27,6 +27,7 @@ namespace Acorn{
         virtual void ClearBuffers() = 0;
         virtual void ClearShaders() = 0;
 
+        virtual void UpdateFrameResource() = 0;
         virtual void UpdateConstants() = 0;
         virtual void RenderBuffers() = 0;
 

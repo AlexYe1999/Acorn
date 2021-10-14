@@ -21,8 +21,6 @@ void Win32App::InitApp(
     m_pAppInstance = appInstance;
 
     const std::string CLASS_NAME  = "Sample Window Class";
-    
-    WNDCLASS wc = { };
 
     WNDCLASS wc = {};
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -161,11 +159,6 @@ void Win32App::RunApp(){
                 return 0;
             }
         }
-        case WM_DESTROY:{
-            PostQuitMessage(0);
-            break;
-        }
-
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

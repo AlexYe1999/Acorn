@@ -40,7 +40,7 @@ public:
 
     struct MeshData{
         std::vector<Vertex> vertices;
-        std::vector<UINT32> indices;
+        std::vector<UINT16> indices;
     };
     
     MeshData CreateGrid(float width, float depth, UINT m, UINT n);

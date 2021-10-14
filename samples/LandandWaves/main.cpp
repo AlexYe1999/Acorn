@@ -1,4 +1,4 @@
-#include<Windows.h>
+#include"LandWavesApp.hpp"
 
 int WINAPI WinMain(
     HINSTANCE hInstance,
@@ -7,16 +7,16 @@ int WINAPI WinMain(
     int nCmdShow
 ){
 
-    Win32App *app = Win32App::GetInstance();
-    
+    LandWavesApp& app = LandWavesApp::GetInstance();
     try{
-        app->InitApp(hInstance, nCmdShow, 500, 500);
+        app.InitApp(hInstance, nCmdShow,
+            500, 500, "LandandWaves", "Land and Waves");
     }
     catch(...){
         return 0;
     }
 
-    app->RunApp();
+    app.RunApp();
 
     return 0;
 }

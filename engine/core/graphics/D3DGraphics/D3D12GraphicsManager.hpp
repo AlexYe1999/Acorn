@@ -15,7 +15,8 @@
 
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
-    using FrameResourcePtr = std::unique_ptr<FrameResource<PassConstant, ObjectConstant>>;
+    using FrameResourcePtr = 
+        std::unique_ptr<FrameResource<PassConstant, ObjectConstant, VertexP3C4>>;
     using FrameResourcePtrVector = std::vector<FrameResourcePtr>;
 
     struct GraphicsParam{
@@ -63,6 +64,7 @@ namespace Acorn{
         virtual void ClearBuffers() override;
         virtual void ClearShaders() override;
 
+        virtual void UpdateFrameResource() override;
         virtual void UpdateConstants() override;
         virtual void RenderBuffers() override;
 

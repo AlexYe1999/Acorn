@@ -26,7 +26,6 @@ namespace Acorn{
         
         m_pD3D12GraphicsCommandList->Reset(m_pD3D12CommandAllocator.Get(), nullptr);
 
-        	// Release the previous resources we will be recreating.
         for(int i = 0; i < g_GraphicsConfig.BackBufferCount; ++i)
             m_pRtBuffer[i].Reset();
         m_pDsBuffer.Reset();
@@ -174,7 +173,7 @@ namespace Acorn{
 
     void D3D12GraphicsManager::Tick(){
 
-        UpdateConstants();
+        UpdateFrameResource();
         Render();
     
     }
@@ -291,6 +290,16 @@ namespace Acorn{
                 );
         }
 
+        for(auto& mesh : m_pScene->DynamicMeshes){
+            mesh.second->IndexBufferGPU =
+                D3DUtil::CreateDefaultBuffer(
+                    m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
+                    mesh.second->IndexBufferCPU->GetBufferPointer(),
+                    mesh.second->IndexBufferCPU->GetBufferSize(),
+                    mesh.second->IndexBufferUploader
+                );
+        }
+
     }
 
     void D3D12GraphicsManager::InitializeShaders(){
@@ -309,10 +318,14 @@ namespace Acorn{
     void D3D12GraphicsManager::InitializeConstants(){
 
         const auto& frameResourceCount = g_GraphicsConfig.FrameResourceCount;
+        const auto& mesh = m_pScene->DynamicMeshes["WaveGeo"];
+        const auto& vertexCount = mesh->VertexBufferByteSize / mesh->VertexByteStride;
+
         for(int index = 0; index < frameResourceCount; index++){
             m_pFrameResource.push_back(std::move(
-                std::make_unique<FrameResource<PassConstant, ObjectConstant>>(
-                    m_pD3D12Device.Get(), 1, m_pScene->OpaqueRenderItems.size())
+                std::make_unique<FrameResource<PassConstant, ObjectConstant, VertexP3C4>>(
+                    m_pD3D12Device.Get(), 1,
+                    m_pScene->OpaqueRenderItems.size(), vertexCount)
             ));
         }
 
@@ -368,12 +381,13 @@ namespace Acorn{
         }
 
     }
-    
-    void D3D12GraphicsManager::UpdateConstants(){
-        
-        auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
 
-        if(currFrameResource->Fence != 0 
+
+    void D3D12GraphicsManager::UpdateFrameResource(){
+
+        const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+
+        if(currFrameResource->Fence != 0
             && m_pD3D12Fence->GetCompletedValue() < currFrameResource->Fence){
 
             HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
@@ -382,6 +396,20 @@ namespace Acorn{
             CloseHandle(eventHandle);
 
         }
+
+        UpdateConstants();
+
+        auto vertexVB = currFrameResource->DynamicVB.get();
+        vertexVB->CopyData(
+            static_cast<BYTE*>(
+                m_pScene->DynamicMeshes["WaveGeo"]->VertexBufferCPU->GetBufferPointer())
+        );
+
+        m_pScene->DynamicMeshes["WaveGeo"]->VertexBufferGPU = vertexVB ->Resource();
+    }
+
+    void D3D12GraphicsManager::UpdateConstants(){
+        const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
 
         UpdateMainPassConstBuffer();
 
@@ -588,7 +616,6 @@ namespace Acorn{
 
     void D3D12GraphicsManager::BuildPSO(){
 
-        ComPtr<ID3D12PipelineState> defaultPSO;
         //Rasterizer state
         D3D12_RASTERIZER_DESC rasterDesc;
         rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
@@ -639,10 +666,9 @@ namespace Acorn{
         piplineStateDesc.Flags = {};
 
         HRESULT res =  m_pD3D12Device->CreateGraphicsPipelineState(
-            &piplineStateDesc, IID_PPV_ARGS(defaultPSO.GetAddressOf())
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["defaultPSO"].GetAddressOf())
         );
 
-        m_pPSOs["defaultPSO"] = std::move(defaultPSO);
     }
 
     void D3D12GraphicsManager::DrawOpaqueItems(){

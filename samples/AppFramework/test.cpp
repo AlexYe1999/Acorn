@@ -1,7 +1,7 @@
 #include<Windows.h>
 #include"AppFramework.hpp"
 
-class TestWnd : public AppFremework<TestWnd>{
+class TestWnd : public AppFramework<TestWnd>{
 
 };
 
@@ -15,7 +15,7 @@ int WINAPI WinMain(
     TestWnd& app = TestWnd::GetInstance();
     
     try{
-        app.InitApp(hInstance, nCmdShow, 500, 500, "test", "Test");
+        app.InitWnd(hInstance, nCmdShow, 500, 500, "test", "Test");
     }
     catch(...){
         return 0;
