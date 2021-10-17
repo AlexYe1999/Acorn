@@ -6,7 +6,6 @@ include_directories(${ENGINE_DIR}/core/camera)
 include_directories(${ENGINE_DIR}/core/graphics/D3DGraphics/resource)
 
 set(ALL_FILE
-    D3DGraphics/UploadBuffer.hpp
     D3DGraphics/d3dx12.h
     D3DGraphics/d3dUtil.hpp
     D3DGraphics/d3dUtil.cpp

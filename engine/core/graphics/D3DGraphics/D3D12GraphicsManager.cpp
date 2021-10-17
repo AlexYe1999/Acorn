@@ -323,9 +323,9 @@ namespace Acorn{
 
         for(int index = 0; index < frameResourceCount; index++){
             m_pFrameResource.push_back(std::move(
-                std::make_unique<FrameResource<PassConstant, ObjectConstant, VertexP3C4>>(
-                    m_pD3D12Device.Get(), 1,
-                    m_pScene->OpaqueRenderItems.size(), vertexCount)
+                std::make_unique<FrameResourceT>(
+                    m_pD3D12Device.Get(), 1, m_pScene->OpaqueRenderItems.size(),
+                    m_pScene->Materials.size(), vertexCount)
             ));
         }
 
@@ -380,6 +380,8 @@ namespace Acorn{
             handle.Offset(1, m_uCbvUavDescriptorSize);
         }
 
+
+
     }
 
 
@@ -409,25 +411,11 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::UpdateConstants(){
-        const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
 
         UpdateMainPassConstBuffer();
+        UpdateObjectConstBuffer();
+        UpdateMaterialConstBuffer();
 
-        auto ObjectCB = currFrameResource->ObjectCB.get();
-
-        for(auto& item : m_pScene->OpaqueRenderItems){
-
-            if(item->DirtyCount > 0){
-                XMMATRIX world = XMLoadFloat4x4(&item->World);
-
-                ObjectConstant objConstant;
-                XMStoreFloat4x4(&objConstant.World, XMMatrixTranspose(world));
-
-                ObjectCB->CopyData(item->ObjCBIndex, objConstant);
-
-                item->DirtyCount--;
-            }
-        }
 
     }
 
@@ -584,7 +572,7 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::BuildRootSignature(){
-        CD3DX12_ROOT_PARAMETER slotRootParam[2];
+        CD3DX12_ROOT_PARAMETER slotRootParam[3];
         CD3DX12_DESCRIPTOR_RANGE cbvTable0;
         cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 
@@ -593,8 +581,10 @@ namespace Acorn{
 
         slotRootParam[0].InitAsDescriptorTable(1, &cbvTable0);
         slotRootParam[1].InitAsDescriptorTable(1, &cbvTable1);
+        slotRootParam[2].InitAsConstantBufferView(2);
+
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
-            2, slotRootParam, 0, nullptr,
+            3, slotRootParam, 0, nullptr,
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
         );
 
@@ -616,7 +606,6 @@ namespace Acorn{
 
     void D3D12GraphicsManager::BuildPSO(){
 
-        //Rasterizer state
         D3D12_RASTERIZER_DESC rasterDesc;
         rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
         rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
@@ -634,18 +623,16 @@ namespace Acorn{
         D3D12_GRAPHICS_PIPELINE_STATE_DESC piplineStateDesc;
         ZeroMemory(&piplineStateDesc, sizeof(piplineStateDesc));
         piplineStateDesc.InputLayout = {
-            VertexP3C4::Desc.data(), 
-            VertexP3C4::Desc.size()
+            VertexPNC::Desc.data(),
+            VertexPNC::Desc.size()
         };
         piplineStateDesc.StreamOutput = {};
         piplineStateDesc.pRootSignature = m_pRootSignature.Get();
         piplineStateDesc.VS = {
-            reinterpret_cast<BYTE*>(m_pVSByteCode->GetBufferPointer()),
-            m_pVSByteCode->GetBufferSize()
+            m_pVSByteCode->GetBufferPointer(), m_pVSByteCode->GetBufferSize()
         };
         piplineStateDesc.PS = {
-            reinterpret_cast<BYTE *>(m_pPSByteCode->GetBufferPointer()),
-            m_pPSByteCode->GetBufferSize()
+            m_pPSByteCode->GetBufferPointer(), m_pPSByteCode->GetBufferSize()
         };
         piplineStateDesc.DS = {};
         piplineStateDesc.HS = {};
@@ -675,8 +662,12 @@ namespace Acorn{
 
         constexpr uint16_t objCBByteSize = 
             D3DUtil::CalcAlignment(sizeof(ObjectConstant));
+        constexpr uint16_t matCBByteSize = 
+            D3DUtil::CalcAlignment(sizeof(MaterialConstant));
         uint16_t objCBByteOffset = 
             m_pScene->OpaqueRenderItems.size() * m_uCurrFrameResourceIndex;
+
+        auto& MatCB = m_pFrameResource[m_uCurrFrameResourceIndex]->MaterialCB;
 
         for(const auto& item : m_pScene->OpaqueRenderItems){
             m_pD3D12GraphicsCommandList->IASetVertexBuffers(0, 1, &item->Mesh->VertexBufferView());
@@ -688,13 +679,19 @@ namespace Acorn{
             );
             cbvHandle.Offset(objCBByteOffset+item->ObjCBIndex, m_uCbvUavDescriptorSize);
             m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
+
+            auto matCB = 
+                MatCB->Resource()->GetGPUVirtualAddress() + item->Mat->MatCBIndex * matCBByteSize;
+
+            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCB);
+
             m_pD3D12GraphicsCommandList->DrawIndexedInstanced(
                 item->IndexCount, 1, item->StartIndexLocation, item->StartVertexLocation, 0
             );
         }
     }
     
-    inline void D3D12GraphicsManager::UpdateMainPassConstBuffer(){
+    void D3D12GraphicsManager::UpdateMainPassConstBuffer(){
         auto& camera = m_pScene->MainCamera;
 
         XMMATRIX view = XMLoadFloat4x4(&camera.GetViewMatrix());
@@ -712,6 +709,7 @@ namespace Acorn{
         XMStoreFloat4x4(&m_MainPassCB.ViewProj, XMMatrixTranspose(viewProj));
         XMStoreFloat4x4(&m_MainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
         m_MainPassCB.EyePosW = camera.GetPosition();
+        m_MainPassCB.pad1 = m_uCurrFrameResourceIndex;
         m_MainPassCB.RenderTargetSize = 
             Vector2f(g_GraphicsConfig.WndWidth, g_GraphicsConfig.WndHeight);
         m_MainPassCB.InvRenderTargetSize = 
@@ -720,15 +718,71 @@ namespace Acorn{
         m_MainPassCB.FarZ = 1000.0f;
         m_MainPassCB.TotalTime = m_pTimer->TotalTime();
         m_MainPassCB.DeltaTime = m_pTimer->DeltaTime();
+        m_MainPassCB.AmbientLight = {0.1f, 0.1f, 0.1f, 1.0f};
 
-        m_MainPassCB.pad1 = m_uCurrFrameResourceIndex;
-
+        m_MainPassCB.Lights[1].Strength = Vector3f(1.0f, 1.0f, 1.0f);
+        m_MainPassCB.Lights[2].FalloffStart = 1.0f;
+        m_MainPassCB.Lights[1].FalloffEnd = 200.0f;
+        m_MainPassCB.Lights[1].Position = Vector3f(
+            105.0f * cosf(m_pTimer->TotalTime() / 10.0f),
+            105.0f * sinf(m_pTimer->TotalTime() / 10.0f),
+            0.0f
+        );
+        m_MainPassCB.Lights[2].Strength = Vector3f(0.1f, 0.1, 0.1f);
+        m_MainPassCB.Lights[2].Direction = Vector3f(1.0f, 0.0f, 0.0f);
+        m_MainPassCB.Lights[2].FalloffStart = 1.0f;
+        m_MainPassCB.Lights[2].FalloffEnd = 200.0f;
+        m_MainPassCB.Lights[2].Position = Vector3f(0.0f, 10.0f, 0.0f);
+        m_MainPassCB.Lights[2].SpotPower = 64;
         auto PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB.get();
         PassCB->CopyData(0, m_MainPassCB);
 
     }
 
-    inline D3D12_CPU_DESCRIPTOR_HANDLE 
+    void D3D12GraphicsManager::UpdateObjectConstBuffer(){
+        const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+        auto ObjectCB = currFrameResource->ObjectCB.get();
+
+        for(auto& item : m_pScene->OpaqueRenderItems){
+
+            if(item->DirtyCount > 0){
+                XMMATRIX world = XMMatrixTranspose(XMLoadFloat4x4(&item->World));
+                XMMATRIX worldIT = XMMatrixInverse(nullptr, world);
+
+                ObjectConstant objConstant;
+                XMStoreFloat4x4(&objConstant.World, world);
+                XMStoreFloat4x4(&objConstant.WorldIT, XMMatrixTranspose(worldIT));
+
+                ObjectCB->CopyData(item->ObjCBIndex, objConstant);
+
+                item->DirtyCount--;
+            }
+        }
+    }
+
+    void D3D12GraphicsManager::UpdateMaterialConstBuffer(){
+        const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+        auto MaterialCB = currFrameResource->MaterialCB.get();
+
+        for(auto& mat : m_pScene->Materials){
+
+            if(mat.second->NumFramesDirty > 0){
+
+                MaterialConstant matCB;
+                matCB.DiffuseAlbedo = mat.second->DiffuseAlbedo;
+                matCB.MatTransform  = mat.second->MatTransform;
+                matCB.FresnelR0 = mat.second->FresnelR0;
+                matCB.Roughness = mat.second->Roughness;
+
+                MaterialCB->CopyData(mat.second->MatCBIndex, matCB);
+                mat.second->NumFramesDirty--;
+            }
+
+        }
+
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE 
     D3D12GraphicsManager::CurrentBackBufferView() const{
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -736,7 +790,7 @@ namespace Acorn{
         );
     }
 
-    inline D3D12_CPU_DESCRIPTOR_HANDLE 
+    D3D12_CPU_DESCRIPTOR_HANDLE 
     D3D12GraphicsManager::DepthStencilView() const{
         return m_pDsvHeap->GetCPUDescriptorHandleForHeapStart();
     }

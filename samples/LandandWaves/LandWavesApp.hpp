@@ -41,6 +41,7 @@ protected:
 protected:
     virtual void BuildScene();
     virtual void CreateMesh();
+    virtual void CreateMaterial();
     virtual void CreateRenderItem();
 
 protected:

@@ -106,7 +106,7 @@ void Win32App::RunApp(){
     }
 }
 
- inline LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
+ LRESULT Win32App::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
     switch (uMsg){
         case WM_LBUTTONDOWN:{
             SetCapture(hwnd);
@@ -202,7 +202,7 @@ void Win32App::CreateMesh(){
     uint32_t totalVertexCount = box.vertices.size()
         + grid.vertices.size() + sphere.vertices.size() + cylinder.vertices.size();
 
-    std::vector<Acorn::VertexP3C4> vertices(totalVertexCount);
+    std::vector<Acorn::VertexPNC> vertices(totalVertexCount);
     std::vector<uint16_t> indices;
 
     uint32_t indexOffset  = 0;
@@ -309,7 +309,7 @@ void Win32App::CreateMesh(){
     }
 #endif
 
-    const uint32_t vertexByteSize = sizeof(Acorn::VertexP3C4) * vertices.size();
+    const uint32_t vertexByteSize = sizeof(Acorn::VertexPNC) * vertices.size();
     const uint32_t indexByteSize  = sizeof(uint16_t) * indices.size();
 
     D3DCreateBlob(vertexByteSize, mesh->VertexBufferCPU.GetAddressOf());
@@ -318,7 +318,7 @@ void Win32App::CreateMesh(){
     CopyMemory(mesh->VertexBufferCPU->GetBufferPointer(), vertices.data(), vertexByteSize);
     CopyMemory(mesh->IndexBufferCPU->GetBufferPointer(), indices.data(), indexByteSize);
 
-    mesh->VertexByteStride = sizeof(Acorn::VertexP3C4);
+    mesh->VertexByteStride = sizeof(Acorn::VertexPNC);
     mesh->VertexBufferByteSize = vertexByteSize;
     mesh->IndexFormat = DXGI_FORMAT_R16_UINT;
     mesh->IndexBufferByteSize  = indexByteSize;
@@ -430,7 +430,7 @@ void Win32App::CreateRenderItem(){
 
 }
 
-inline void Win32App::UpdateInput(){
+void Win32App::UpdateInput(){
 
     static Acorn::Point2<int16_t> deltaP(0, 0);
     if(m_Mouse.IsKeyDown(0)){

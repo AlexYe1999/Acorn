@@ -1,6 +1,7 @@
 #pragma once
 #include"../GraphicsManager.hpp"
 #include"Vertex.hpp"
+#include"Constant.hpp"
 #include"UploadBuffer.hpp"
 #include"FrameResource.hpp"
 #include"d3dx12.h"
@@ -15,10 +16,10 @@
 
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
-    using FrameResourcePtr = 
-        std::unique_ptr<FrameResource<PassConstant, ObjectConstant, VertexP3C4>>;
-    using FrameResourcePtrVector = std::vector<FrameResourcePtr>;
-
+    using FrameResourceT = 
+        FrameResource<PassConstant, ObjectConstant, MaterialConstant, VertexPNC>;
+    using FrameResourcePtrVector = std::vector<std::unique_ptr<FrameResourceT>>;
+    
     struct GraphicsParam{
         HWND MainWnd = nullptr;
         uint16_t WndWidth  = 500;
@@ -79,8 +80,8 @@ namespace Acorn{
     protected:
         void DrawOpaqueItems();
         void UpdateMainPassConstBuffer();
-
-
+        void UpdateObjectConstBuffer();
+        void UpdateMaterialConstBuffer();
     protected:
         ComPtr<IDXGIFactory> m_pDXGIFactory;
         ComPtr<ID3D12Device> m_pD3D12Device;

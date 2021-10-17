@@ -87,8 +87,26 @@ void LandWavesApp::BuildScene(){
         Acorn::Vector3f(0.0f, 0.0f, 0.0f),
         Acorn::Vector3f(0.0f, 1.0f, 0.0f)
     );
+    CreateMaterial();
     CreateMesh();
     CreateRenderItem();
+}
+
+inline Acorn::Vector3f GetHillsNormal(float x, float z){
+
+    Acorn::Vector3f n(
+        -0.03f*z*cosf(0.1f*x) - 0.3f*cosf(0.1f*z),
+        1.0f,
+        -0.3f*sinf(0.1f*x) + 0.03f*x*sinf(0.1f*z));
+
+    DirectX::XMVECTOR unitNormal = Acorn::XMVector3Normalize(XMLoadFloat3(&n));
+    XMStoreFloat3(&n, unitNormal);
+
+    return n;
+}
+
+float GetHillsHeight(float x, float z){
+    return 0.3f*(z*sinf(0.1f*x) + x*cosf(0.1f*z));
 }
 
 void LandWavesApp::CreateMesh(){
@@ -97,13 +115,14 @@ void LandWavesApp::CreateMesh(){
 
     GeoGenerator geoGen;
     GeoGenerator::MeshData grid = geoGen.CreateGrid(105.0f, 105.0f, 50, 50);
-    std::vector<Acorn::VertexP3C4> landVertices(grid.vertices.size());
+    std::vector<Acorn::VertexPNC> landVertices(grid.vertices.size());
 
     for(uint16_t index = 0; index < landVertices.size(); index++){
         auto& p = grid.vertices[index].position;
 
         landVertices[index].Position = p;
-        landVertices[index].Position.y = 0.3f*(p.z*sinf(0.1f*p.x) + p.x*cosf(0.1f*p.z));
+        landVertices[index].Normal = GetHillsNormal(p.x, p.z);
+        landVertices[index].Position.y = GetHillsHeight(p.x, p.z);
 
         if(landVertices[index].Position.y < -10.0f){
             landVertices[index].Color = 
@@ -129,7 +148,7 @@ void LandWavesApp::CreateMesh(){
         std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>();
         land->Name = "LandGeo";
 
-        const uint32_t landVbByteSize = grid.vertices.size() * sizeof(Acorn::VertexP3C4);
+        const uint32_t landVbByteSize = grid.vertices.size() * sizeof(Acorn::VertexPNC);
         const uint32_t landIbByteSize = grid.indices.size() * sizeof(uint16_t);
 
         D3DCreateBlob(landVbByteSize, land->VertexBufferCPU.GetAddressOf());
@@ -138,7 +157,7 @@ void LandWavesApp::CreateMesh(){
         CopyMemory(land->VertexBufferCPU->GetBufferPointer(), landVertices.data(), landVbByteSize);
         CopyMemory(land->IndexBufferCPU->GetBufferPointer(), grid.indices.data(), landIbByteSize);
 
-        land->VertexByteStride = sizeof(Acorn::VertexP3C4);
+        land->VertexByteStride = sizeof(Acorn::VertexPNC);
         land->IndexFormat = DXGI_FORMAT_R16_UINT;
         land->VertexBufferByteSize = landVbByteSize;
         land->IndexBufferByteSize = landIbByteSize;
@@ -171,7 +190,7 @@ void LandWavesApp::CreateMesh(){
             }
         }
 
-        const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::VertexP3C4);
+        const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::VertexPNC);
         const uint32_t waveIbByteSize = indices.size() * sizeof(uint16_t);
 
         auto wave = std::make_unique<Acorn::Mesh>();
@@ -182,7 +201,7 @@ void LandWavesApp::CreateMesh(){
 
         CopyMemory(wave->IndexBufferCPU->GetBufferPointer(), indices.data(), waveIbByteSize);
 
-        wave->VertexByteStride = sizeof(Acorn::VertexP3C4);
+        wave->VertexByteStride = sizeof(Acorn::VertexPNC);
         wave->IndexFormat = DXGI_FORMAT_R16_UINT;
         wave->VertexBufferByteSize = waveVbByteSize;
         wave->IndexBufferByteSize = waveIbByteSize;
@@ -197,6 +216,28 @@ void LandWavesApp::CreateMesh(){
     }
 }
 
+void LandWavesApp::CreateMaterial(){
+
+    auto grass = std::make_unique<Acorn::Material>();
+    grass->Name = "grass";
+    grass->MatCBIndex = 0;
+    grass->DiffuseAlbedo = Acorn::Vector4f(0.2f, 0.6f, 0.2f, 1.0f);
+    grass->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
+    grass->Roughness = 0.125f;
+    grass->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
+    auto water = std::make_unique<Acorn::Material>();
+    water->Name = "water";
+    water->MatCBIndex = 1;
+    water->DiffuseAlbedo = Acorn::Vector4f(0.0f, 0.2f, 0.6f, 1.0f);
+    water->FresnelR0 = Acorn::Vector3f(0.1f, 0.1f, 0.1f);
+    water->Roughness = 0.0f;
+    water->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
+    m_pScene->Materials["grass"] = std::move(grass);
+    m_pScene->Materials["water"] = std::move(water);
+}
+
 void LandWavesApp::CreateRenderItem(){
 
     uint16_t objIndex = 0;
@@ -204,6 +245,7 @@ void LandWavesApp::CreateRenderItem(){
     auto land = std::make_unique<Acorn::RenderItem>();
     land->World = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
     land->Mesh = m_pScene->Meshes["LandGeo"].get();
+    land->Mat = m_pScene->Materials["grass"].get();
     land->ObjCBIndex = objIndex++;
     land->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     land->IndexCount = land->Mesh->SubMesh["Land"].IndexCount;
@@ -216,6 +258,7 @@ void LandWavesApp::CreateRenderItem(){
     auto wave = std::make_unique<Acorn::RenderItem>();
     wave->World = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
     wave->Mesh = m_pScene->DynamicMeshes["WaveGeo"].get();
+    wave->Mat = m_pScene->Materials["water"].get();
     wave->ObjCBIndex = objIndex++;
     wave->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     wave->IndexCount = wave->Mesh->SubMesh["Wave"].IndexCount;
@@ -235,16 +278,16 @@ void LandWavesApp::UpdateInput(){
         deltaP = Acorn::Point2<int16_t>(0, 0);
     }
 
-    float theta = 0.001f * DirectX::XMConvertToRadians(deltaP.x);
-    float phi = 0.001f * DirectX::XMConvertToRadians(deltaP.y);
+    float theta = 0.002f * DirectX::XMConvertToRadians(deltaP.x);
+    float phi = 0.002f * DirectX::XMConvertToRadians(deltaP.y);
     m_pScene->MainCamera.RotateY(theta);
     m_pScene->MainCamera.Pitch(phi);
 }
 
 void LandWavesApp::UpdateScene(){
-    const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::VertexP3C4);
+    const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::VertexPNC);
     const auto& vertexBuffer = m_pScene->DynamicMeshes["WaveGeo"]->VertexBufferCPU->GetBufferPointer();
-    std::vector<Acorn::VertexP3C4> vertices(m_pWaves->VertexCount());
+    std::vector<Acorn::VertexPNC> vertices(m_pWaves->VertexCount());
 
 	static float t_base = 0.0f;
 	if((m_Timer.TotalTime() - t_base) >= 0.25f)
@@ -264,7 +307,8 @@ void LandWavesApp::UpdateScene(){
 
 	for(int i = 0; i < m_pWaves->VertexCount(); ++i){
         vertices[i].Position = m_pWaves->Position(i);
-        vertices[i].Color = Acorn::Vector4f(0.0f, 0.0f, 1.0f, 1.0f);
+        vertices[i].Normal = m_pWaves->Normal(i);
+        vertices[i].Color = Acorn::Vector4f(1.0f, 0.2f, 0.2f, 1.0f);
 	}
 
     CopyMemory(vertexBuffer, vertices.data(), waveVbByteSize);
