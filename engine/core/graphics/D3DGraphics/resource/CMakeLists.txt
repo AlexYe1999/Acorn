@@ -16,6 +16,7 @@ set(Geometry
 
 set(Frame_Resource
     Light.hpp
+    Texture.hpp
     Material.hpp
     Constant.hpp
     UploadBuffer.hpp

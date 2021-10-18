@@ -1,3 +1,4 @@
 add_subdirectory(Win32App)
 add_subdirectory(AppFramework)
 add_subdirectory(LandandWaves)
+add_subdirectory(TextureMapping)

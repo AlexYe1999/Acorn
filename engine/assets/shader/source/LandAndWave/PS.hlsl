@@ -5,9 +5,9 @@ float4 CalcLighting(
     float3 normal, float3 toEye
 ){
 	float3 result = 0.1f;
-    //result += CalcDirectionalLight(Lights[0], mat, normal, toEye);
+    result += CalcDirectionalLight(Lights[0], mat, normal, toEye);
 	result += CalcPointLight(Lights[1], mat, pos, normal, toEye);
-    //result += CalcSpotLight(Lights[2], mat, pos, normal, toEye);
+    result += CalcSpotLight(Lights[2], mat, pos, normal, toEye);
     return float4(result, 0.0f);
 }
 

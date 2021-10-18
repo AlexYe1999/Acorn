@@ -64,10 +64,9 @@ float CalcAttenuation(float d, float falloffStart, float falloffEnd){
 
 float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec){
     
-    float cosIncidenceAngle = saturate(dot(normal, lightVec));
-    float f0 = 1.0f-cosIncidenceAngle;
-	float3 reflectPercent = R0 + (1.0f - R0) * (f0 * f0 * f0 * f0 * f0);
-	return reflectPercent;
+    float cos = saturate(dot(normal, lightVec));
+
+	return R0 + (1.0f - R0) * pow(1 - cos, 5.0f);
 }
 
 float3 BlinnPhong(
@@ -78,7 +77,7 @@ float3 BlinnPhong(
 	const float m = mat.Shininess * 256.0f;
 	float3 halfVec = normalize(toEye + lightVec);
 
-	float roughnessFactor = pow(max(dot(halfVec, normal), 0.0f), m);
+	float roughnessFactor = (m+8.0f) * pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
 	float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
 
 	float3 specAlbedo = roughnessFactor * fresnelFactor;

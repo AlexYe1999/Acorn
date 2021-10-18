@@ -416,7 +416,6 @@ namespace Acorn{
         UpdateObjectConstBuffer();
         UpdateMaterialConstBuffer();
 
-
     }
 
     void D3D12GraphicsManager::RenderBuffers(){
@@ -718,22 +717,31 @@ namespace Acorn{
         m_MainPassCB.FarZ = 1000.0f;
         m_MainPassCB.TotalTime = m_pTimer->TotalTime();
         m_MainPassCB.DeltaTime = m_pTimer->DeltaTime();
-        m_MainPassCB.AmbientLight = {0.1f, 0.1f, 0.1f, 1.0f};
+        m_MainPassCB.AmbientLight = {0.05f, 0.05f, 0.05f, 1.0f};
 
-        m_MainPassCB.Lights[1].Strength = Vector3f(1.0f, 1.0f, 1.0f);
-        m_MainPassCB.Lights[2].FalloffStart = 1.0f;
-        m_MainPassCB.Lights[1].FalloffEnd = 200.0f;
+
+        m_MainPassCB.Lights[0].Strength = Vector3f(0.1f, 0.1f, 0.1f);
+
         m_MainPassCB.Lights[1].Position = Vector3f(
             105.0f * cosf(m_pTimer->TotalTime() / 10.0f),
             105.0f * sinf(m_pTimer->TotalTime() / 10.0f),
             0.0f
         );
-        m_MainPassCB.Lights[2].Strength = Vector3f(0.1f, 0.1, 0.1f);
-        m_MainPassCB.Lights[2].Direction = Vector3f(1.0f, 0.0f, 0.0f);
+        m_MainPassCB.Lights[1].Strength = Vector3f(0.5f, 0.5f, 0.5f);
+        m_MainPassCB.Lights[1].FalloffStart = 1.0f;
+        m_MainPassCB.Lights[1].FalloffEnd = 200.0f;
+
+        m_MainPassCB.Lights[2].Position = Vector3f(0.0f, 25.0f, 0.0f);
+        m_MainPassCB.Lights[2].Direction = Vector3f(
+            0.8 * cosf(m_pTimer->TotalTime() / 2.0f),
+            -0.6f,
+            0.8 * sinf(m_pTimer->TotalTime() / 2.0f)
+        );
+        m_MainPassCB.Lights[2].Strength = Vector3f(0.0f, 0.0, 2.0f);
         m_MainPassCB.Lights[2].FalloffStart = 1.0f;
         m_MainPassCB.Lights[2].FalloffEnd = 200.0f;
-        m_MainPassCB.Lights[2].Position = Vector3f(0.0f, 10.0f, 0.0f);
-        m_MainPassCB.Lights[2].SpotPower = 64;
+        m_MainPassCB.Lights[2].SpotPower = 32.0f;
+
         auto PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB.get();
         PassCB->CopyData(0, m_MainPassCB);
 

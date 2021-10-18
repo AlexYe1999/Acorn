@@ -49,10 +49,10 @@ namespace D3DUtil{
     }
     
     Microsoft::WRL::ComPtr<ID3DBlob> LoadBinaryShader(const std::string &fileName){
-        std::ifstream fin(fileName);
+        std::ifstream fin(fileName, std::ios::binary);
 
         fin.seekg(0, std::ios::end);
-        int64_t size = static_cast<uint64_t>(fin.tellg());
+        std::streamsize size = static_cast<std::streamsize>(fin.tellg());
         fin.seekg(0, std::ios::beg);
 
         Microsoft::WRL::ComPtr<ID3DBlob> blob;
