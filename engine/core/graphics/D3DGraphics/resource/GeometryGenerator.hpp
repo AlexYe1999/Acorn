@@ -13,11 +13,10 @@ public:
     struct Vertex{
         Vertex() = default;
         Vertex(
-            XMFLOAT3 &&p,
-            XMFLOAT3 &&n,
-            XMFLOAT3 &&t,
-            XMFLOAT2 &&_uv
-        ) : position(std::forward<XMFLOAT3>(p)),
+            XMFLOAT3 &&p, XMFLOAT3 &&n,
+            XMFLOAT3 &&t, XMFLOAT2 &&_uv
+        ) : 
+            position(std::forward<XMFLOAT3>(p)),
             normal(std::forward<XMFLOAT3>(n)),
             tangentU(std::forward<XMFLOAT3>(t)),
             uv(std::forward<XMFLOAT2>(_uv))
@@ -27,10 +26,9 @@ public:
             float nx, float ny, float nz,
             float tx, float ty, float tz,
             float u, float v
-        ) : position(x, y, z),
-            normal(nx, ny, nz),
-            tangentU(tx, ty, tz),
-            uv(u, v)
+        ) : 
+            position(x, y, z), normal(nx, ny, nz),
+            tangentU(tx, ty, tz), uv(u, v)
         {}         
         XMFLOAT3 position;
         XMFLOAT3 normal;

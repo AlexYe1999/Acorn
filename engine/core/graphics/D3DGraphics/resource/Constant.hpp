@@ -26,6 +26,7 @@ namespace Acorn{
     struct ObjectConstant{
         Matrix4f World;
         Matrix4f WorldIT;
+        Matrix4f TexTransform;
         ObjectConstant() = default;
     }; // size 16*4 = 64
 

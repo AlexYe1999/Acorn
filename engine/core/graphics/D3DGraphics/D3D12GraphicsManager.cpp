@@ -15,7 +15,7 @@ namespace Acorn{
         m_uCurrFrameResourceIndex(0),
         m_uRtvDescriptorSize(0),
         m_uDsvDescriptorSize(0),
-        m_uCbvUavDescriptorSize(0),
+        m_uCbvSrvUavDescriptorSize(0),
         m_pScene(nullptr),
         m_pTimer(nullptr)
     {}
@@ -153,6 +153,7 @@ namespace Acorn{
         BuildRtAndDs();
         BuildRootSignature();
 
+        InitializeResources();
         InitializeBuffers();
         InitializeConstants();
         InitializeShaders();
@@ -214,20 +215,15 @@ namespace Acorn{
             1, &CurrentBackBufferView(), true, &DepthStencilView()
         );
 
-        ID3D12DescriptorHeap *descriptorHeap[] = {m_pCbvHeap.Get()};
-        m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
         m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
 
-        const auto passOffset = 
-            m_pScene->OpaqueRenderItems.size() * g_GraphicsConfig.FrameResourceCount;
-        auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
-            m_pCbvHeap->GetGPUDescriptorHandleForHeapStart()
-        );
-        cbvHandle.Offset(
-            passOffset + m_uCurrFrameResourceIndex, m_uCbvUavDescriptorSize
-        );
+        ID3D12DescriptorHeap *descriptorHeap[] = {m_pSrvHeap.Get()};
+        m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
 
-        m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+        auto& PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB;
+        m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+            0, PassCB->Resource()->GetGPUVirtualAddress()
+        );
 
         DrawOpaqueItems();
         
@@ -267,6 +263,57 @@ namespace Acorn{
 
     }
 
+    void D3D12GraphicsManager::InitializeResources(){
+
+        for(auto& p : m_pScene->Textures){
+            auto& texture = p.second;
+            CreateDDSTextureFromFile12(
+                m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
+                texture->FileName.c_str(), texture->Resource, texture->UploadHeap
+            );
+        }
+
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+        srvHeapDesc.NumDescriptors = m_pScene->Materials.size();
+        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        srvHeapDesc.NodeMask = 
+        m_pD3D12Device->CreateDescriptorHeap(
+            &srvHeapDesc, IID_PPV_ARGS(m_pSrvHeap.GetAddressOf())
+        );
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+        auto& textures = m_pScene->Textures;
+            
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(
+            m_pSrvHeap->GetCPUDescriptorHandleForHeapStart()
+        );
+        srvDesc.Format = textures["GrassTexture"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["GrassTexture"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["GrassTexture"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["WaveTexture"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["WaveTexture"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["WaveTexture"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["CrateTexture"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["CrateTexture"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["CrateTexture"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+    }
 
     void D3D12GraphicsManager::InitializeBuffers(){
         assert(m_pScene != nullptr);
@@ -351,7 +398,7 @@ namespace Acorn{
                 auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
                     m_pCbvHeap->GetCPUDescriptorHandleForHeapStart()
                 );
-                handle.Offset(heapIndex, m_uCbvUavDescriptorSize);
+                handle.Offset(heapIndex, m_uCbvSrvUavDescriptorSize);
 
                 D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
                 cbvDesc.BufferLocation = cbAddress;
@@ -366,7 +413,7 @@ namespace Acorn{
         auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
             m_pCbvHeap->GetCPUDescriptorHandleForHeapStart()
         );
-        handle.Offset(frameResourceCount*objCount, m_uCbvUavDescriptorSize);
+        handle.Offset(frameResourceCount*objCount, m_uCbvSrvUavDescriptorSize);
         for(int index = 0; index < frameResourceCount; index++){
             const auto& passCB = m_pFrameResource[index]->PassCB->Resource();
             auto cbAddress = passCB->GetGPUVirtualAddress();
@@ -377,10 +424,8 @@ namespace Acorn{
 
             m_pD3D12Device->CreateConstantBufferView(&cbvDesc, handle);
 
-            handle.Offset(1, m_uCbvUavDescriptorSize);
+            handle.Offset(1, m_uCbvSrvUavDescriptorSize);
         }
-
-
 
     }
 
@@ -435,7 +480,7 @@ namespace Acorn{
             m_pD3D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         m_uDsvDescriptorSize =
             m_pD3D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-        m_uCbvUavDescriptorSize = 
+        m_uCbvSrvUavDescriptorSize = 
             m_pD3D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         m_pD3D12Device->CreateFence(
@@ -443,7 +488,7 @@ namespace Acorn{
         );
     }
 
-    inline void D3D12GraphicsManager::BuildCommandObject(){
+    void D3D12GraphicsManager::BuildCommandObject(){
         D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
         commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -464,7 +509,7 @@ namespace Acorn{
 
     }
 
-    inline void D3D12GraphicsManager::BuildSwapChain(){
+    void D3D12GraphicsManager::BuildSwapChain(){
         m_pDXGISwapChain.Reset();
 
         DXGI_SWAP_CHAIN_DESC swapChainDesc;
@@ -571,19 +616,19 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::BuildRootSignature(){
-        CD3DX12_ROOT_PARAMETER slotRootParam[3];
-        CD3DX12_DESCRIPTOR_RANGE cbvTable0;
-        cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+        CD3DX12_ROOT_PARAMETER slotRootParam[4];
+        CD3DX12_DESCRIPTOR_RANGE cbvTable;
+        cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-        CD3DX12_DESCRIPTOR_RANGE cbvTable1;
-        cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-
-        slotRootParam[0].InitAsDescriptorTable(1, &cbvTable0);
-        slotRootParam[1].InitAsDescriptorTable(1, &cbvTable1);
+        slotRootParam[0].InitAsConstantBufferView(0);
+        slotRootParam[1].InitAsConstantBufferView(1);
         slotRootParam[2].InitAsConstantBufferView(2);
+        slotRootParam[3].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_PIXEL);
+
+        StaticSamplerArray staticSampler = GetStaticSamplers();
 
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
-            3, slotRootParam, 0, nullptr,
+            4, slotRootParam, GetStaticSamplers().size(), GetStaticSamplers().data(),
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
         );
 
@@ -622,8 +667,8 @@ namespace Acorn{
         D3D12_GRAPHICS_PIPELINE_STATE_DESC piplineStateDesc;
         ZeroMemory(&piplineStateDesc, sizeof(piplineStateDesc));
         piplineStateDesc.InputLayout = {
-            VertexPNC::Desc.data(),
-            VertexPNC::Desc.size()
+            Vertex::Desc.data(),
+            Vertex::Desc.size()
         };
         piplineStateDesc.StreamOutput = {};
         piplineStateDesc.pRootSignature = m_pRootSignature.Get();
@@ -657,37 +702,93 @@ namespace Acorn{
 
     }
 
+    StaticSamplerArray D3D12GraphicsManager::GetStaticSamplers(){
+        const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+            0, // shaderRegister
+            D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+        const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
+            1, // shaderRegister
+            D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+        const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+            2, // shaderRegister
+            D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+        const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+            3, // shaderRegister
+            D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+        const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
+            4, // shaderRegister
+            D3D12_FILTER_ANISOTROPIC, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+            0.0f,                             // mipLODBias
+            8);                               // maxAnisotropy
+
+        const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
+            5, // shaderRegister
+            D3D12_FILTER_ANISOTROPIC, // filter
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+            0.0f,                              // mipLODBias
+            8);                                // maxAnisotropy
+
+        return {
+            pointWrap, pointClamp,
+            linearWrap, linearClamp,
+            anisotropicWrap, anisotropicClamp};
+    }
+
     void D3D12GraphicsManager::DrawOpaqueItems(){
 
         constexpr uint16_t objCBByteSize = 
             D3DUtil::CalcAlignment(sizeof(ObjectConstant));
         constexpr uint16_t matCBByteSize = 
             D3DUtil::CalcAlignment(sizeof(MaterialConstant));
-        uint16_t objCBByteOffset = 
-            m_pScene->OpaqueRenderItems.size() * m_uCurrFrameResourceIndex;
 
-        auto& MatCB = m_pFrameResource[m_uCurrFrameResourceIndex]->MaterialCB;
+        auto& frameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+        auto objCBAddr = frameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
+        auto matCBAddr = frameResource->MaterialCB->Resource()->GetGPUVirtualAddress();
 
         for(const auto& item : m_pScene->OpaqueRenderItems){
             m_pD3D12GraphicsCommandList->IASetVertexBuffers(0, 1, &item->Mesh->VertexBufferView());
             m_pD3D12GraphicsCommandList->IASetIndexBuffer(&item->Mesh->IndexBufferView());
             m_pD3D12GraphicsCommandList->IASetPrimitiveTopology(item->PrimitiveType);
 
-            auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
-                m_pCbvHeap->GetGPUDescriptorHandleForHeapStart()
+            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+                1, objCBAddr + item->ObjCBIndex * objCBByteSize
             );
-            cbvHandle.Offset(objCBByteOffset+item->ObjCBIndex, m_uCbvUavDescriptorSize);
-            m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
-
-            auto matCB = 
-                MatCB->Resource()->GetGPUVirtualAddress() + item->Mat->MatCBIndex * matCBByteSize;
-
-            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(2, matCB);
-
+            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+                2, matCBAddr + item->Mat->MatCBIndex * matCBByteSize
+            );
+            
+            auto srvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+                m_pSrvHeap->GetGPUDescriptorHandleForHeapStart()
+            );
+            srvHandle.Offset(item->Mat->DiffuseSrvHeapIndex, m_uCbvSrvUavDescriptorSize);
+            m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(3, srvHandle);
+            
             m_pD3D12GraphicsCommandList->DrawIndexedInstanced(
                 item->IndexCount, 1, item->StartIndexLocation, item->StartVertexLocation, 0
             );
         }
+
     }
     
     void D3D12GraphicsManager::UpdateMainPassConstBuffer(){
@@ -720,7 +821,7 @@ namespace Acorn{
         m_MainPassCB.AmbientLight = {0.05f, 0.05f, 0.05f, 1.0f};
 
 
-        m_MainPassCB.Lights[0].Strength = Vector3f(0.1f, 0.1f, 0.1f);
+        m_MainPassCB.Lights[0].Strength = Vector3f(0.3f, 0.3f, 0.3f);
 
         m_MainPassCB.Lights[1].Position = Vector3f(
             105.0f * cosf(m_pTimer->TotalTime() / 10.0f),
@@ -733,11 +834,11 @@ namespace Acorn{
 
         m_MainPassCB.Lights[2].Position = Vector3f(0.0f, 25.0f, 0.0f);
         m_MainPassCB.Lights[2].Direction = Vector3f(
-            0.8 * cosf(m_pTimer->TotalTime() / 2.0f),
+            0.8f * cosf(m_pTimer->TotalTime() / 2.0f),
             -0.6f,
-            0.8 * sinf(m_pTimer->TotalTime() / 2.0f)
+            0.8f * sinf(m_pTimer->TotalTime() / 2.0f)
         );
-        m_MainPassCB.Lights[2].Strength = Vector3f(0.0f, 0.0, 2.0f);
+        m_MainPassCB.Lights[2].Strength = Vector3f(2.0f, 0.0, 0.0f);
         m_MainPassCB.Lights[2].FalloffStart = 1.0f;
         m_MainPassCB.Lights[2].FalloffEnd = 200.0f;
         m_MainPassCB.Lights[2].SpotPower = 32.0f;

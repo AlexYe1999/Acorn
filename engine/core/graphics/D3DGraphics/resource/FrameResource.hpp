@@ -38,7 +38,7 @@ namespace Acorn{
         std::unique_ptr<UploadBuffer<PassType, true>> PassCB = nullptr;
         std::unique_ptr<UploadBuffer<ObjectType, true>> ObjectCB = nullptr;
         std::unique_ptr<UploadBuffer<MaterialType, true>> MaterialCB = nullptr;
-        std::unique_ptr<UploadBuffer<VertexPNC, false>> DynamicVB = nullptr;
+        std::unique_ptr<UploadBuffer<Vertex, false>> DynamicVB = nullptr;
 
         uint64_t Fence = 0;
     };

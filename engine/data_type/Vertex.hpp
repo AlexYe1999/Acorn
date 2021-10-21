@@ -11,10 +11,10 @@ namespace Acorn{
         static std::array<D3D12_INPUT_ELEMENT_DESC, 2> Desc;
     };
 
-    struct VertexPNC{
+    struct Vertex{
         Vector3f Position;
         Vector3f Normal;
-        Vector4f Color;
+        Vector2f TexC;
         static std::array<D3D12_INPUT_ELEMENT_DESC, 3> Desc;
     };
 

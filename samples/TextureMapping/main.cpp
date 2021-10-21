@@ -10,7 +10,7 @@ int WINAPI WinMain(
     TextureApp& app = TextureApp::GetInstance();
     try{
         app.InitApp(hInstance, nCmdShow,
-            500, 500, "LandandWaves", "Land and Waves");
+            700, 700, "LandandWaves", "Land and Waves");
     }
     catch(...){
         return 0;

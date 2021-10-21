@@ -41,10 +41,14 @@ protected:
 protected:
     virtual void BuildScene();
     virtual void CreateMesh();
+    virtual void CreateTexture();
     virtual void CreateMaterial();
     virtual void CreateRenderItem();
 
 protected:
     void UpdateInput();
     void UpdateScene();
+    
+protected:
+    void AnimateMaterial();
 };

@@ -14,11 +14,12 @@ float4 CalcLighting(
 float4 main(VSOut PSin) : SV_Target {
 
     float3 toEye = normalize(EyePosW-PSin.PosW);
-	float4 ambient = AmbientLight * PSin.Color;
-
+	float4 diffuseAlbedo = DiffuseAlbedo * DiffuseMap.Sample(samAnisotricWrap, PSin.TexC);
+	float4 ambient = AmbientLight * diffuseAlbedo;
+  
     PSin.NormalW = normalize(PSin.NormalW);
     
-	Material mat = { PSin.Color, FresnelR0, 1.0f - Roughness };
+	Material mat = { diffuseAlbedo, FresnelR0, 1.0f - Roughness };
 	float4 direct = CalcLighting(mat, PSin.PosW, PSin.NormalW, toEye);
 	float4 litColor = ambient + direct;
     

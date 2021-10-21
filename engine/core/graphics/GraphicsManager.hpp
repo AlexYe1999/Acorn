@@ -21,6 +21,7 @@ namespace Acorn{
         virtual void ClearDebugBuffers() = 0;
 
     protected:
+        virtual void InitializeResources() = 0;
         virtual void InitializeBuffers() = 0;
         virtual void InitializeConstants() = 0;
         virtual void InitializeShaders() = 0;

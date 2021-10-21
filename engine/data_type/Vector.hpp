@@ -15,6 +15,7 @@ namespace Acorn{
         Vector2f operator /(const Vector2f& vec) const;
         Vector2f operator *(const float factor) const;
         Vector2f operator /(const float factor) const;
+        Vector2f& operator =(const XMFLOAT2& vec);
         Vector2f& operator +=(const Vector2f& vec);
         Vector2f& operator -=(const Vector2f& vec);
         Vector2f& operator *=(const Vector2f& vec);
@@ -94,6 +95,11 @@ namespace Acorn{
         Vector2f vector(factor);
         XMStoreFloat2(&vector, XMLoadFloat2(this)/XMLoadFloat2(&vector));
         return vector;
+    }
+    inline Vector2f& Vector2f::operator =(const XMFLOAT2& vec){
+        x = vec.x;
+        y = vec.y;
+        return *this;
     }
     inline Vector2f& Vector2f::operator +=(const Vector2f& vec){
         XMStoreFloat2(this, XMLoadFloat2(this)+XMLoadFloat2(&vec));

@@ -4,11 +4,13 @@
 #include"Constant.hpp"
 #include"UploadBuffer.hpp"
 #include"FrameResource.hpp"
+#include"DDSTextureLoader.h"
 #include"d3dx12.h"
 #include"d3dUtil.hpp"
 #include<wrl.h>
 #include<memory>
 #include<cassert>
+#include<array>
 #include<string>
 #include<dxgi.h>
 #include<D3D12.h>
@@ -17,9 +19,10 @@
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
     using FrameResourceT = 
-        FrameResource<PassConstant, ObjectConstant, MaterialConstant, VertexPNC>;
+        FrameResource<PassConstant, ObjectConstant, MaterialConstant, Vertex>;
     using FrameResourcePtrVector = std::vector<std::unique_ptr<FrameResourceT>>;
-    
+    using StaticSamplerArray = std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6>;
+
     struct GraphicsParam{
         HWND MainWnd = nullptr;
         uint16_t WndWidth  = 500;
@@ -58,6 +61,7 @@ namespace Acorn{
         virtual void ClearDebugBuffers() override;
 
     protected:
+        virtual void InitializeResources() override;
         virtual void InitializeBuffers() override;
         virtual void InitializeConstants() override;
         virtual void InitializeShaders() override;
@@ -77,11 +81,15 @@ namespace Acorn{
         void BuildRootSignature();
         void BuildPSO();
 
+        StaticSamplerArray GetStaticSamplers();
+
+
     protected:
         void DrawOpaqueItems();
         void UpdateMainPassConstBuffer();
         void UpdateObjectConstBuffer();
         void UpdateMaterialConstBuffer();
+
     protected:
         ComPtr<IDXGIFactory> m_pDXGIFactory;
         ComPtr<ID3D12Device> m_pD3D12Device;
@@ -96,6 +104,7 @@ namespace Acorn{
         ComPtr<ID3D12DescriptorHeap> m_pRtvHeap;
         ComPtr<ID3D12DescriptorHeap> m_pDsvHeap;
         ComPtr<ID3D12DescriptorHeap> m_pCbvHeap;
+        ComPtr<ID3D12DescriptorHeap> m_pSrvHeap;
         D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
         D3D12_INDEX_BUFFER_VIEW  m_IndexBufferView;
 
@@ -113,7 +122,7 @@ namespace Acorn{
         uint16_t m_uCurrFrameResourceIndex;
         uint16_t m_uRtvDescriptorSize;
         uint16_t m_uDsvDescriptorSize;
-        uint16_t m_uCbvUavDescriptorSize;
+        uint16_t m_uCbvSrvUavDescriptorSize;
 
     protected:
         Scene* m_pScene;

@@ -28,6 +28,13 @@ namespace Acorn{
         void operator=(const XMMATRIX& matrix){
             XMStoreFloat4x4(this, matrix);
         }
+        float operator() (size_t Row, size_t Column) const{
+            return m[Row][Column]; 
+        }
+        float& operator() (size_t Row, size_t Column){
+            return m[Row][Column]; 
+        }
+
         XMMATRIX operator()(const XMMATRIX& matrix){
             return XMLoadFloat4x4(this);
         }

@@ -36,6 +36,7 @@ cbuffer PassCB : register(b0) {
 cbuffer ObjectCB : register(b1){
 	float4x4 World;
 	float4x4 WorldIT;
+	float4x4 TexTransform;
 };
 
 cbuffer MatCB : register(b2){
@@ -45,17 +46,26 @@ cbuffer MatCB : register(b2){
     float4x4 MatTransform;
 };
 
+Texture2D DiffuseMap : register(t0);
+
+SamplerState samPointWrap : register(s0);
+SamplerState samPointClamp : register(s1);
+SamplerState samLinearWrap : register(s2);
+SamplerState samLinearClamp : register(s3);
+SamplerState samAnisotricWrap : register(s4);
+SamplerState samAnisotricClamp : register(s5);
+
 struct VSIn{
 	float3 PosL  : POSITION;
 	float3 NormalL : NORMAL;
-	float4 Color : COLOR;
+	float2 TexC : TEXCOORD;
 };
 
 struct VSOut{
+	float4 PosH : SV_POSITION;
 	float3 PosW : POSITION;
 	float3 NormalW : NORMAL;
-	float4 Color : COLOR;
-	float4 PosH : SV_POSITION;
+	float2 TexC : TEXCOORD;
 };
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd){

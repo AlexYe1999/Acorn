@@ -56,6 +56,7 @@ GeometryGenerator::CreateGrid(float width, float depth, UINT m, UINT n){
 	}
     return meshData;
 }
+
 GeometryGenerator::MeshData
 GeometryGenerator::CreateBox(float width, float height, float depth, UINT32 numSubdivisions){
     MeshData meshData;

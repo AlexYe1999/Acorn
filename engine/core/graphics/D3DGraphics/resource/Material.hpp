@@ -10,7 +10,7 @@ namespace Acorn{
         std::string Name;
 
         int16_t MatCBIndex = -1;
-        int16_t DiffuseSrvIndex = -1;
+        int16_t DiffuseSrvHeapIndex = -1;
         uint16_t NumFramesDirty = 0;
 
         Acorn::Vector4f DiffuseAlbedo = {1.0f, 1.0f, 1.0f, 1.0f};
