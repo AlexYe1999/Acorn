@@ -31,6 +31,11 @@ cbuffer PassCB : register(b0) {
 	float DeltaTime;
     float4 AmbientLight;
 	Light Lights[3];
+	
+	float4 FogColor;
+	float  FogStart;
+	float  FogRange;
+	float2 pad;
 };
 
 cbuffer ObjectCB : register(b1){

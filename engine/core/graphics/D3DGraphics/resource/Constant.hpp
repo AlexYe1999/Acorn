@@ -20,6 +20,11 @@ namespace Acorn{
         float DeltaTime;
         Vector4f AmbientLight;
         Light Lights[3];
+
+        Vector4f FogColor;
+        float FogStart;
+        float FogRange;
+        Vector2f pad;
         PassConstant() = default;
     }; //size 6*16 + 4 + 4 + 4 = 108*4 = 432
 

@@ -86,6 +86,7 @@ namespace Acorn{
 
     protected:
         void DrawOpaqueItems();
+        void DrawTransparentItems();
         void UpdateMainPassConstBuffer();
         void UpdateObjectConstBuffer();
         void UpdateMaterialConstBuffer();
@@ -114,8 +115,8 @@ namespace Acorn{
 
         ComPtr<ID3D12RootSignature> m_pRootSignature;
 
-        ComPtr<ID3DBlob> m_pVSByteCode;
-        ComPtr<ID3DBlob> m_pPSByteCode;
+        std::unordered_map<std::string, ComPtr<ID3DBlob>> m_pVSByteCode;
+        std::unordered_map<std::string, ComPtr<ID3DBlob>> m_pPSByteCode;
 
         uint64_t m_uCurrentFence;
         uint16_t m_uCurrentBackBufferIndex; 

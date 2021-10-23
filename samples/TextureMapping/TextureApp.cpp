@@ -83,7 +83,7 @@ void TextureApp::BuildScene(){
 
     m_pScene = std::make_unique<Acorn::Scene>();
     m_pScene->MainCamera.LookAt(
-        Acorn::Vector3f(-49.0f, 40.0f, 50.0f),
+        Acorn::Vector3f(-98.0f, 80.0f, 100.0f),
         Acorn::Vector3f(0.0f, 0.0f, 0.0f),
         Acorn::Vector3f(0.0f, 1.0f, 0.0f)
     );
@@ -121,7 +121,7 @@ void TextureApp::CreateTexture(){
     waveTex->Name = "WaveTexture";
 
     auto crateTex = std::make_unique<Acorn::Texture>();
-    crateTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/WoodCrate.dds";
+    crateTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/WireFence.dds";
     crateTex->Name = "CrateTexture";
 
     m_pScene->Textures[grassTex->Name] = std::move(grassTex);
@@ -145,7 +145,7 @@ void TextureApp::CreateMaterial(){
     water->Name = "water";
     water->MatCBIndex = 1;
     water->DiffuseSrvHeapIndex = 1;
-    water->DiffuseAlbedo = Acorn::Vector4f(0.0f, 0.2f, 0.6f, 1.0f);
+    water->DiffuseAlbedo = Acorn::Vector4f(0.0f, 0.2f, 0.6f, 0.5f);
     water->FresnelR0 = Acorn::Vector3f(0.1f, 0.1f, 0.1f);
     water->Roughness = 0.0f;
     water->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
@@ -293,7 +293,7 @@ void TextureApp::CreateRenderItem(){
     uint16_t objIndex = 0;
 
     auto land = std::make_unique<Acorn::RenderItem>();
-    land->World = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
+    land->World = DirectX::XMMatrixScaling(4.0f, 3.0f, 4.0f);
     land->Mesh = m_pScene->Meshes["LandGeo"].get();
     land->Mat = m_pScene->Materials["grass"].get();
     land->ObjCBIndex = objIndex++;
@@ -305,19 +305,6 @@ void TextureApp::CreateRenderItem(){
     m_pScene->OpaqueRenderItems.push_back(std::move(land.get()));
     m_pScene->AllRenderItems.push_back(std::move(land));
 
-    auto wave = std::make_unique<Acorn::RenderItem>();
-    wave->World = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-    wave->Mesh = m_pScene->DynamicMeshes["WaveGeo"].get();
-    wave->Mat = m_pScene->Materials["water"].get();
-    wave->ObjCBIndex = objIndex++;
-    wave->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    wave->IndexCount = wave->Mesh->SubMesh["Wave"].IndexCount;
-    wave->StartVertexLocation = wave->Mesh->SubMesh["Wave"].StartVertexLocation;
-    wave->StartIndexLocation = wave->Mesh->SubMesh["Wave"].StartIndexLocation;
-    wave->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->OpaqueRenderItems.push_back(std::move(wave.get()));
-    m_pScene->AllRenderItems.push_back(std::move(wave));
-
     auto box = std::make_unique<Acorn::RenderItem>();
     box->World = DirectX::XMMatrixScaling(15.0f, 15.0f, 15.0f);
     box->Mesh = m_pScene->Meshes["BoxGeo"].get();
@@ -328,8 +315,21 @@ void TextureApp::CreateRenderItem(){
     box->StartVertexLocation = box->Mesh->SubMesh["Box"].StartVertexLocation;
     box->StartIndexLocation = box->Mesh->SubMesh["Box"].StartIndexLocation;
     box->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->OpaqueRenderItems.push_back(std::move(box.get()));
+    m_pScene->TransparentRenderItems.push_back(std::move(box.get()));
     m_pScene->AllRenderItems.push_back(std::move(box));
+
+    auto wave = std::make_unique<Acorn::RenderItem>();
+    wave->World = DirectX::XMMatrixScaling(4.0f, 3.0f, 4.0f);
+    wave->Mesh = m_pScene->DynamicMeshes["WaveGeo"].get();
+    wave->Mat = m_pScene->Materials["water"].get();
+    wave->ObjCBIndex = objIndex++;
+    wave->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    wave->IndexCount = wave->Mesh->SubMesh["Wave"].IndexCount;
+    wave->StartVertexLocation = wave->Mesh->SubMesh["Wave"].StartVertexLocation;
+    wave->StartIndexLocation = wave->Mesh->SubMesh["Wave"].StartIndexLocation;
+    wave->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+    m_pScene->TransparentRenderItems.push_back(std::move(wave.get()));
+    m_pScene->AllRenderItems.push_back(std::move(wave));
 }
 
 void TextureApp::UpdateInput(){

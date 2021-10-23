@@ -189,7 +189,7 @@ namespace Acorn{
 
         currFrameResource->CmdListAlloc->Reset();
         m_pD3D12GraphicsCommandList->Reset(
-            currFrameResource->CmdListAlloc.Get(), m_pPSOs["defaultPSO"].Get()
+            currFrameResource->CmdListAlloc.Get(), m_pPSOs["Default"].Get()
         );
 
         m_pD3D12GraphicsCommandList->RSSetViewports(1, &g_GraphicsConfig.ViewPort);
@@ -201,9 +201,8 @@ namespace Acorn{
                 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
         );
 
-        static float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
         m_pD3D12GraphicsCommandList->ClearRenderTargetView(
-            CurrentBackBufferView(), black, 0, nullptr
+            CurrentBackBufferView(), (float*)&m_MainPassCB.FogColor, 0, nullptr
         );
 
         m_pD3D12GraphicsCommandList->ClearDepthStencilView(
@@ -226,7 +225,8 @@ namespace Acorn{
         );
 
         DrawOpaqueItems();
-        
+        DrawTransparentItems();
+
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, &CD3DX12_RESOURCE_BARRIER::Transition(
                 m_pRtBuffer[m_uCurrentBackBufferIndex].Get(), 
@@ -350,8 +350,9 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::InitializeShaders(){
-        m_pVSByteCode = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\VS.cso");
-        m_pPSByteCode = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\PS.cso");
+        m_pVSByteCode["DefaultVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\VS.cso");
+        m_pPSByteCode["DefaultPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\PS.cso");
+        m_pPSByteCode["TransparentPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TransparentPS.cso");
     }
     
     void D3D12GraphicsManager::ClearShaders(){
@@ -371,12 +372,12 @@ namespace Acorn{
         for(int index = 0; index < frameResourceCount; index++){
             m_pFrameResource.push_back(std::move(
                 std::make_unique<FrameResourceT>(
-                    m_pD3D12Device.Get(), 1, m_pScene->OpaqueRenderItems.size(),
+                    m_pD3D12Device.Get(), 1, m_pScene->AllRenderItems.size(),
                     m_pScene->Materials.size(), vertexCount)
             ));
         }
 
-        uint16_t objCount = m_pScene->OpaqueRenderItems.size();
+        uint16_t objCount = m_pScene->AllRenderItems.size();
         uint16_t numDescriptor = (objCount+1) * frameResourceCount;
 
         D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
@@ -663,7 +664,6 @@ namespace Acorn{
         rasterDesc.ForcedSampleCount = 0;
         rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-        //Pipline State Object
         D3D12_GRAPHICS_PIPELINE_STATE_DESC piplineStateDesc;
         ZeroMemory(&piplineStateDesc, sizeof(piplineStateDesc));
         piplineStateDesc.InputLayout = {
@@ -673,10 +673,12 @@ namespace Acorn{
         piplineStateDesc.StreamOutput = {};
         piplineStateDesc.pRootSignature = m_pRootSignature.Get();
         piplineStateDesc.VS = {
-            m_pVSByteCode->GetBufferPointer(), m_pVSByteCode->GetBufferSize()
+            m_pVSByteCode["DefaultVS"]->GetBufferPointer(),
+            m_pVSByteCode["DefaultVS"]->GetBufferSize()
         };
         piplineStateDesc.PS = {
-            m_pPSByteCode->GetBufferPointer(), m_pPSByteCode->GetBufferSize()
+            m_pPSByteCode["DefaultPS"]->GetBufferPointer(),
+            m_pPSByteCode["DefaultPS"]->GetBufferSize()
         };
         piplineStateDesc.DS = {};
         piplineStateDesc.HS = {};
@@ -697,7 +699,40 @@ namespace Acorn{
         piplineStateDesc.Flags = {};
 
         HRESULT res =  m_pD3D12Device->CreateGraphicsPipelineState(
-            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["defaultPSO"].GetAddressOf())
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Default"].GetAddressOf())
+        );
+
+        D3D12_BLEND_DESC blendDesc = {};
+        blendDesc.AlphaToCoverageEnable = false;
+        blendDesc.IndependentBlendEnable = false;
+        blendDesc.RenderTarget[0].BlendEnable = true;
+        blendDesc.RenderTarget[0].LogicOpEnable = false;
+        blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+        blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+        blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+        blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+        piplineStateDesc.BlendState = blendDesc;
+
+        piplineStateDesc.VS = {
+            m_pVSByteCode["DefaultVS"]->GetBufferPointer(),
+            m_pVSByteCode["DefaultVS"]->GetBufferSize()
+        };
+        piplineStateDesc.PS = {
+            m_pPSByteCode["TransparentPS"]->GetBufferPointer(),
+            m_pPSByteCode["TransparentPS"]->GetBufferSize()
+        };
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Transparent"].GetAddressOf())
+        );
+
+        piplineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["AlphaTested"].GetAddressOf())
         );
 
     }
@@ -791,6 +826,43 @@ namespace Acorn{
 
     }
     
+    void D3D12GraphicsManager::DrawTransparentItems(){
+
+        constexpr uint16_t objCBByteSize = 
+            D3DUtil::CalcAlignment(sizeof(ObjectConstant));
+        constexpr uint16_t matCBByteSize = 
+            D3DUtil::CalcAlignment(sizeof(MaterialConstant));
+
+        auto& frameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+        auto objCBAddr = frameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
+        auto matCBAddr = frameResource->MaterialCB->Resource()->GetGPUVirtualAddress();
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Transparent"].Get());
+
+        for(const auto& item : m_pScene->TransparentRenderItems){
+            
+            m_pD3D12GraphicsCommandList->IASetVertexBuffers(0, 1, &item->Mesh->VertexBufferView());
+            m_pD3D12GraphicsCommandList->IASetIndexBuffer(&item->Mesh->IndexBufferView());
+            m_pD3D12GraphicsCommandList->IASetPrimitiveTopology(item->PrimitiveType);
+
+            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+                1, objCBAddr + item->ObjCBIndex * objCBByteSize
+            );
+            m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+                2, matCBAddr + item->Mat->MatCBIndex * matCBByteSize
+            );
+            
+            auto srvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+                m_pSrvHeap->GetGPUDescriptorHandleForHeapStart()
+            );
+            srvHandle.Offset(item->Mat->DiffuseSrvHeapIndex, m_uCbvSrvUavDescriptorSize);
+            m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(3, srvHandle);
+            
+            m_pD3D12GraphicsCommandList->DrawIndexedInstanced(
+                item->IndexCount, 1, item->StartIndexLocation, item->StartVertexLocation, 0
+            );
+        }
+    }
+
     void D3D12GraphicsManager::UpdateMainPassConstBuffer(){
         auto& camera = m_pScene->MainCamera;
 
@@ -821,7 +893,7 @@ namespace Acorn{
         m_MainPassCB.AmbientLight = {0.05f, 0.05f, 0.05f, 1.0f};
 
 
-        m_MainPassCB.Lights[0].Strength = Vector3f(0.3f, 0.3f, 0.3f);
+        m_MainPassCB.Lights[0].Strength = Vector3f(0.4f, 0.4f, 0.4f);
 
         m_MainPassCB.Lights[1].Position = Vector3f(
             105.0f * cosf(m_pTimer->TotalTime() / 10.0f),
@@ -843,6 +915,10 @@ namespace Acorn{
         m_MainPassCB.Lights[2].FalloffEnd = 200.0f;
         m_MainPassCB.Lights[2].SpotPower = 32.0f;
 
+        m_MainPassCB.FogColor = {0.7f, 0.7f, 0.7f, 1.0f};
+        m_MainPassCB.FogStart = 10.0f;
+        m_MainPassCB.FogRange = 500.0;
+
         auto PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB.get();
         PassCB->CopyData(0, m_MainPassCB);
 
@@ -852,7 +928,7 @@ namespace Acorn{
         const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
         auto ObjectCB = currFrameResource->ObjectCB.get();
 
-        for(auto& item : m_pScene->OpaqueRenderItems){
+        for(auto& item : m_pScene->AllRenderItems){
 
             if(item->DirtyCount > 0){
                 XMMATRIX world = XMMatrixTranspose(XMLoadFloat4x4(&item->World));

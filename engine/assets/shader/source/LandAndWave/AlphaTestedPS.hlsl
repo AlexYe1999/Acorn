@@ -13,23 +13,19 @@ float4 CalcLighting(
 
 float4 main(VSOut PSin) : SV_Target {
 
-    float3 toEye = EyePosW-PSin.PosW;
-	float distance = length(toEye);
+    float3 toEye = normalize(EyePosW-PSin.PosW);
 	float4 diffuseAlbedo = DiffuseAlbedo * DiffuseMap.Sample(samAnisotricWrap, PSin.TexC);
+	
+	clip(diffuseAlbedo.a - 0.01f);
 	
 	float4 ambient = AmbientLight * diffuseAlbedo;
   
     PSin.NormalW = normalize(PSin.NormalW);
-	toEye /= distance;
-	
+    
 	Material mat = { diffuseAlbedo, FresnelR0, 1.0f - Roughness };
-	
 	float4 direct = CalcLighting(mat, PSin.PosW, PSin.NormalW, toEye);
 	float4 litColor = ambient + direct;
     
-	float fogAmount = saturate((distance - FogStart) / FogRange);
-	litColor = lerp(litColor, FogColor, fogAmount);
-	
 	litColor.a = DiffuseAlbedo.a;
 	return litColor;
 }
