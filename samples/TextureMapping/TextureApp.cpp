@@ -123,10 +123,16 @@ void TextureApp::CreateTexture(){
     auto crateTex = std::make_unique<Acorn::Texture>();
     crateTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/WireFence.dds";
     crateTex->Name = "CrateTexture";
+    
+    auto mirrorTex = std::make_unique<Acorn::Texture>();
+    mirrorTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/ice.dds";
+    mirrorTex->Name = "MirrorTexture";
 
     m_pScene->Textures[grassTex->Name] = std::move(grassTex);
     m_pScene->Textures[waveTex->Name] = std::move(waveTex);
     m_pScene->Textures[crateTex->Name] = std::move(crateTex);
+    m_pScene->Textures[mirrorTex->Name] = std::move(mirrorTex);
+
 }
 
 void TextureApp::CreateMaterial(){
@@ -159,18 +165,28 @@ void TextureApp::CreateMaterial(){
 	crate->Roughness = 0.2f;
     crate->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
-    m_pScene->Materials["grass"] = std::move(grass);
-    m_pScene->Materials["water"] = std::move(water);
-    m_pScene->Materials["crate"] = std::move(crate);
+    auto mirror = std::make_unique<Acorn::Material>();
+    mirror->Name = "mirror";
+	mirror->MatCBIndex = 3;
+	mirror->DiffuseSrvHeapIndex = 3;
+	mirror->DiffuseAlbedo = Acorn::Vector4f(1.0f, 1.0f, 1.0f, 0.3f);
+	mirror->FresnelR0 = Acorn::Vector3f(0.1f, 0.1f, 0.1f);
+	mirror->Roughness = 0.5f;
+    mirror->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
+    m_pScene->Materials[grass->Name] = std::move(grass);
+    m_pScene->Materials[water->Name] = std::move(water);
+    m_pScene->Materials[crate->Name] = std::move(crate);
+    m_pScene->Materials[mirror->Name] = std::move(mirror);
 }
 
 void TextureApp::CreateMesh(){
-    using GeoGenerator = LemonCube::GeometryGenerator;
-    m_pWaves = std::make_unique<Waves>(105.0f, 105.0f, 1.0f, 0.03f, 4.0f, 0.2f);
+    using GeoGen = LemonCube::GeometryGenerator;
+    GeoGen geoGen;
 
-    GeoGenerator geoGen;
+    GeoGen::MeshData boxGeo = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+    std::unique_ptr<Acorn::Mesh> box = std::make_unique<Acorn::Mesh>("BoxGeo");
 
-    GeoGenerator::MeshData boxGeo = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
     std::vector<Acorn::Vertex> boxVertices(boxGeo.vertices.size());
 
     for(uint16_t index = 0; index < boxVertices.size(); index++){
@@ -179,9 +195,6 @@ void TextureApp::CreateMesh(){
         boxVertices[index].TexC = boxGeo.vertices[index].uv;
     }
     
-    std::unique_ptr<Acorn::Mesh> box = std::make_unique<Acorn::Mesh>();
-    box->Name = "BoxGeo";
-
     const uint32_t boxVbByteSize = boxVertices.size() * sizeof(Acorn::Vertex);
     const uint32_t boxIbByteSize = boxGeo.indices.size() * sizeof(uint16_t);
 
@@ -205,7 +218,9 @@ void TextureApp::CreateMesh(){
     m_pScene->Meshes[box->Name] = std::move(box);
 
 
-    GeoGenerator::MeshData grid = geoGen.CreateGrid(105.0f, 105.0f, 50, 50);
+    GeoGen::MeshData grid = geoGen.CreateGrid(105.0f, 105.0f, 50, 50);
+    std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>("LandGeo");
+
     std::vector<Acorn::Vertex> landVertices(grid.vertices.size());
 
     for(uint16_t index = 0; index < landVertices.size(); index++){
@@ -216,8 +231,6 @@ void TextureApp::CreateMesh(){
         landVertices[index].Normal = GetHillsNormal(p.x, p.z);
         landVertices[index].TexC = grid.vertices[index].uv;
     }
-    std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>();
-    land->Name = "LandGeo";
 
     const uint32_t landVbByteSize = grid.vertices.size() * sizeof(Acorn::Vertex);
     const uint32_t landIbByteSize = grid.indices.size() * sizeof(uint16_t);
@@ -241,8 +254,10 @@ void TextureApp::CreateMesh(){
     land->SubMesh["Land"] = std::move(landSubMesh);
     m_pScene->Meshes[land->Name] = std::move(land);
 
+    m_pWaves = std::make_unique<Waves>(105.0f, 105.0f, 1.0f, 0.03f, 4.0f, 0.2f);
+    auto wave = std::make_unique<Acorn::Mesh>("WaveGeo");
 
-    std::vector<std::uint16_t> indices(3 * m_pWaves->TriangleCount());
+    std::vector<std::uint16_t> waveIndices(3 * m_pWaves->TriangleCount());
 
     uint16_t m = m_pWaves->RowCount();
     uint16_t n = m_pWaves->ColumnCount();
@@ -250,28 +265,25 @@ void TextureApp::CreateMesh(){
     for(uint16_t i = 0; i < m - 1; ++i){
 
         for(uint16_t j = 0; j < n - 1; ++j){
-            indices[k] = i * n + j;
-            indices[k + 1] = i * n + j + 1;
-            indices[k + 2] = (i + 1) * n + j;
+            waveIndices[k] = i * n + j;
+            waveIndices[k + 1] = i * n + j + 1;
+            waveIndices[k + 2] = (i + 1) * n + j;
 
-            indices[k + 3] = (i + 1) * n + j;
-            indices[k + 4] = i * n + j + 1;
-            indices[k + 5] = (i + 1) * n + j + 1;
+            waveIndices[k + 3] = (i + 1) * n + j;
+            waveIndices[k + 4] = i * n + j + 1;
+            waveIndices[k + 5] = (i + 1) * n + j + 1;
 
             k += 6;
         }
     }
 
     const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::Vertex);
-    const uint32_t waveIbByteSize = indices.size() * sizeof(uint16_t);
-
-    auto wave = std::make_unique<Acorn::Mesh>();
-    wave->Name = "WaveGeo";
+    const uint32_t waveIbByteSize = waveIndices.size() * sizeof(uint16_t);
 
     D3DCreateBlob(waveVbByteSize, wave->VertexBufferCPU.GetAddressOf());
     D3DCreateBlob(waveIbByteSize, wave->IndexBufferCPU.GetAddressOf());
 
-    CopyMemory(wave->IndexBufferCPU->GetBufferPointer(), indices.data(), waveIbByteSize);
+    CopyMemory(wave->IndexBufferCPU->GetBufferPointer(), waveIndices.data(), waveIbByteSize);
 
     wave->VertexByteStride = sizeof(Acorn::Vertex);
     wave->IndexFormat = DXGI_FORMAT_R16_UINT;
@@ -281,10 +293,48 @@ void TextureApp::CreateMesh(){
     Acorn::SubMesh waveSubMesh;
     waveSubMesh.StartVertexLocation = 0;
     waveSubMesh.StartIndexLocation = 0;
-    waveSubMesh.IndexCount = indices.size();
+    waveSubMesh.IndexCount = waveIndices.size();
 
     wave->SubMesh["Wave"] = std::move(waveSubMesh);
     m_pScene->DynamicMeshes[wave->Name] = std::move(wave);
+
+    std::unique_ptr<Acorn::Mesh> mirror = std::make_unique<Acorn::Mesh>("MirrorGeo");
+    
+    std::vector<Acorn::Vertex> mirrorVetices = {
+        Acorn::Vertex(-4.0f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
+        Acorn::Vertex(4.0f,  4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f),
+        Acorn::Vertex(4.0f,  0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f),
+        Acorn::Vertex(-4.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f)
+    };
+    std::vector<std::uint16_t> mirrorIndices = {
+        0, 1, 2,
+        0, 2, 3,
+        2, 1, 0,
+        3, 2, 0
+    };
+
+    const uint32_t mirrorVbByteSize = mirrorVetices.size() * sizeof(Acorn::Vertex);
+    const uint32_t mirrorIbByteSize = mirrorIndices.size() * sizeof(uint16_t);
+
+    D3DCreateBlob(mirrorVbByteSize, mirror->VertexBufferCPU.GetAddressOf());
+    D3DCreateBlob(mirrorIbByteSize, mirror->IndexBufferCPU.GetAddressOf());
+
+    CopyMemory(mirror->VertexBufferCPU->GetBufferPointer(), mirrorVetices.data(), mirrorVbByteSize);
+    CopyMemory(mirror->IndexBufferCPU->GetBufferPointer(), mirrorIndices.data(), mirrorIbByteSize);
+
+    mirror->VertexByteStride = sizeof(Acorn::Vertex);
+    mirror->IndexFormat = DXGI_FORMAT_R16_UINT;
+    mirror->VertexBufferByteSize = mirrorVbByteSize;
+    mirror->IndexBufferByteSize = mirrorIbByteSize;
+
+    Acorn::SubMesh mirrorSubMesh;
+    mirrorSubMesh.StartVertexLocation = 0;
+    mirrorSubMesh.StartIndexLocation = 0;
+    mirrorSubMesh.IndexCount = mirrorIndices.size();
+
+    mirror->SubMesh["Mirror"] = std::move(mirrorSubMesh);
+    m_pScene->Meshes[mirror->Name] = std::move(mirror);
+
 }
 
 
@@ -292,8 +342,26 @@ void TextureApp::CreateRenderItem(){
 
     uint16_t objIndex = 0;
 
+    // mirror
+    auto mirror = std::make_unique<Acorn::RenderItem>();
+    mirror->World = DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f);
+    mirror->Mesh = m_pScene->Meshes["MirrorGeo"].get();
+    mirror->Mat = m_pScene->Materials["mirror"].get();
+    mirror->ObjCBIndex = objIndex++;
+    mirror->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    mirror->IndexCount = mirror->Mesh->SubMesh["Mirror"].IndexCount;
+    mirror->StartVertexLocation = mirror->Mesh->SubMesh["Mirror"].StartVertexLocation;
+    mirror->StartIndexLocation = mirror->Mesh->SubMesh["Mirror"].StartIndexLocation;
+    mirror->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Mirrors)].push_back(std::move(mirror.get()));
+    m_pScene->AllRenderItems.push_back(std::move(mirror));
+    Acorn::Matrix4f reflectedMatrix = DirectX::XMMatrixReflect(
+         DirectX::XMLoadFloat4(&Acorn::Vector4f(0.0f, 0.0f, -1.0f, 0.0f))
+    );
+
+    // land
     auto land = std::make_unique<Acorn::RenderItem>();
-    land->World = DirectX::XMMatrixScaling(4.0f, 3.0f, 4.0f);
+    land->World = DirectX::XMMatrixScaling(4.0f, 4.0f, 4.0f);
     land->Mesh = m_pScene->Meshes["LandGeo"].get();
     land->Mat = m_pScene->Materials["grass"].get();
     land->ObjCBIndex = objIndex++;
@@ -302,11 +370,22 @@ void TextureApp::CreateRenderItem(){
     land->StartVertexLocation = land->Mesh->SubMesh["Land"].StartVertexLocation;
     land->StartIndexLocation = land->Mesh->SubMesh["Land"].StartIndexLocation;
     land->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->OpaqueRenderItems.push_back(std::move(land.get()));
-    m_pScene->AllRenderItems.push_back(std::move(land));
+ 
+    // reflected land
+    auto reflectedLand = std::make_unique<Acorn::RenderItem>();
+    *reflectedLand = *land;
+    reflectedLand->World *= reflectedMatrix;
+    reflectedLand->ObjCBIndex = objIndex++;
 
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Opaque)].push_back(std::move(land.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Reflected)].push_back(std::move(reflectedLand.get()));
+    m_pScene->AllRenderItems.push_back(std::move(land));
+    m_pScene->AllRenderItems.push_back(std::move(reflectedLand));
+
+    // box
     auto box = std::make_unique<Acorn::RenderItem>();
-    box->World = DirectX::XMMatrixScaling(15.0f, 15.0f, 15.0f);
+    box->World = DirectX::XMMatrixScaling(15.0f, 15.0f, 15.0f)
+        * DirectX::XMMatrixTranslation(0.0f, 5.0f,20.0f);
     box->Mesh = m_pScene->Meshes["BoxGeo"].get();
     box->Mat = m_pScene->Materials["crate"].get();
     box->ObjCBIndex = objIndex++;
@@ -315,11 +394,21 @@ void TextureApp::CreateRenderItem(){
     box->StartVertexLocation = box->Mesh->SubMesh["Box"].StartVertexLocation;
     box->StartIndexLocation = box->Mesh->SubMesh["Box"].StartIndexLocation;
     box->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->TransparentRenderItems.push_back(std::move(box.get()));
-    m_pScene->AllRenderItems.push_back(std::move(box));
 
+    // reflected box
+    auto reflectedBox = std::make_unique<Acorn::RenderItem>();
+    *reflectedBox = *box;
+    reflectedBox->World *= reflectedMatrix;
+    reflectedBox->ObjCBIndex = objIndex++;
+    
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Transparent)].push_back(std::move(box.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Reflected)].push_back(std::move(reflectedBox.get()));
+    m_pScene->AllRenderItems.push_back(std::move(box));
+    m_pScene->AllRenderItems.push_back(std::move(reflectedBox));
+    
+    // wave
     auto wave = std::make_unique<Acorn::RenderItem>();
-    wave->World = DirectX::XMMatrixScaling(4.0f, 3.0f, 4.0f);
+    wave->World = DirectX::XMMatrixScaling(4.0f, 4.0f, 4.0f);
     wave->Mesh = m_pScene->DynamicMeshes["WaveGeo"].get();
     wave->Mat = m_pScene->Materials["water"].get();
     wave->ObjCBIndex = objIndex++;
@@ -328,8 +417,10 @@ void TextureApp::CreateRenderItem(){
     wave->StartVertexLocation = wave->Mesh->SubMesh["Wave"].StartVertexLocation;
     wave->StartIndexLocation = wave->Mesh->SubMesh["Wave"].StartIndexLocation;
     wave->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->TransparentRenderItems.push_back(std::move(wave.get()));
+
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Transparent)].push_back(std::move(wave.get()));
     m_pScene->AllRenderItems.push_back(std::move(wave));
+
 }
 
 void TextureApp::UpdateInput(){

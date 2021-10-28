@@ -4,17 +4,17 @@
 #include"Material.hpp"
 #include"Mesh.hpp"
 #include"Texture.hpp"
-#include"vector"
+#include<vector>
+#include<array>
 #include<memory>
 namespace Acorn{
     struct Scene{
+        using RenderItems = std::vector<RenderItem*>;
 
         Camera MainCamera;
 
         std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
-
-        std::vector<RenderItem*> OpaqueRenderItems;
-        std::vector<RenderItem*> TransparentRenderItems;
+        std::array<RenderItems, static_cast<uint16_t>(RenderLayer::LayerCount)> RenderLayers;
 
         std::unordered_map<std::string, std::unique_ptr<Mesh>> Meshes;
         std::unordered_map<std::string, std::unique_ptr<Mesh>> DynamicMeshes;

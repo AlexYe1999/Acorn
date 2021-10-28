@@ -25,19 +25,35 @@ namespace Acorn{
             XMStoreFloat4x4(this, matrix);
         }
         explicit Matrix4f(_In_reads_(16) const float *pArray) : XMFLOAT4X4(pArray){}
-        void operator=(const XMMATRIX& matrix){
-            XMStoreFloat4x4(this, matrix);
-        }
-        float operator() (size_t Row, size_t Column) const{
-            return m[Row][Column]; 
-        }
-        float& operator() (size_t Row, size_t Column){
-            return m[Row][Column]; 
-        }
 
-        XMMATRIX operator()(const XMMATRIX& matrix){
-            return XMLoadFloat4x4(this);
-        }
+        Matrix4f operator*(const Matrix4f& matrix);
+        Matrix4f operator*=(const Matrix4f& matrix);
+        Matrix4f operator=(const XMMATRIX& matrix);
+        float operator() (size_t Row, size_t Column) const;
+        float& operator() (size_t Row, size_t Column);
+        XMMATRIX operator()(const XMMATRIX& matrix);
     };
+
+    inline Matrix4f Matrix4f::operator*(const Matrix4f& matrix){
+        return XMMatrixMultiply(XMLoadFloat4x4(this), XMLoadFloat4x4(&matrix));
+    }
+    inline Matrix4f Matrix4f::operator*=(const Matrix4f& matrix){
+        *this = *this * matrix;
+        return *this;
+    }
+    inline Matrix4f Matrix4f::operator=(const XMMATRIX& matrix){
+        XMStoreFloat4x4(this, matrix);
+        return *this;
+    }
+    inline float Matrix4f::operator() (size_t Row, size_t Column) const{
+        return m[Row][Column];
+    }
+    inline float& Matrix4f::operator() (size_t Row, size_t Column){
+        return m[Row][Column];
+    }
+    inline XMMATRIX Matrix4f::operator()(const XMMATRIX& matrix){
+        return XMLoadFloat4x4(this);
+    }
+
 
 }

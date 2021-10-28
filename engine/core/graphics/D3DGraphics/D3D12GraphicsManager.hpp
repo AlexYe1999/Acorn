@@ -18,8 +18,7 @@
 
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
-    using FrameResourceT = 
-        FrameResource<PassConstant, ObjectConstant, MaterialConstant, Vertex>;
+    using FrameResourceT = FrameResource<PassConstant, ObjectConstant, MaterialConstant, Vertex>;
     using FrameResourcePtrVector = std::vector<std::unique_ptr<FrameResourceT>>;
     using StaticSamplerArray = std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6>;
 
@@ -83,10 +82,8 @@ namespace Acorn{
 
         StaticSamplerArray GetStaticSamplers();
 
-
     protected:
-        void DrawOpaqueItems();
-        void DrawTransparentItems();
+        void DrawRenderLayer(Scene::RenderItems renderItems);
         void UpdateMainPassConstBuffer();
         void UpdateObjectConstBuffer();
         void UpdateMaterialConstBuffer();

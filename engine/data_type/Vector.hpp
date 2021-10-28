@@ -5,7 +5,7 @@ namespace Acorn{
     using namespace DirectX;
 
     struct Vector2f : DirectX::XMFLOAT2{
-        Vector2f() : XMFLOAT2(1.0f, 1.0f){}
+        Vector2f() = default;
         Vector2f(const float x) : XMFLOAT2(x, x) {}
         Vector2f(const float x, const float y) : XMFLOAT2(x, y) {}
 
@@ -25,7 +25,7 @@ namespace Acorn{
     };
 
     struct Vector3f : DirectX::XMFLOAT3{
-        Vector3f() : XMFLOAT3(1.0f, 1.0f, 1.0f){}
+        Vector3f() = default;
         Vector3f(const XMFLOAT3& vec) : XMFLOAT3(vec){}
         Vector3f(const float x) : XMFLOAT3(x, x, x){}
         Vector3f(const float x, const float y, const float z) : DirectX::XMFLOAT3(x, y, z) {}
@@ -46,8 +46,8 @@ namespace Acorn{
     };
 
     struct Vector4f : DirectX::XMFLOAT4{
+        Vector4f() = default;
         Vector4f(const XMVECTOR& vector){ XMStoreFloat4(this, vector); }
-        Vector4f() : XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f){}
         Vector4f(const float x) : XMFLOAT4(x, x, x, x){}
         Vector4f(const float x, const float y, const float z, const float w)
             : XMFLOAT4(x, y, z, w){}
@@ -58,6 +58,7 @@ namespace Acorn{
         Vector4f operator /(const Vector4f& DataType) const;
         Vector4f operator *(const float factor) const;
         Vector4f operator /(const float factor) const;
+        XMVECTOR operator ()() const;
         Vector4f& operator +=(const Vector4f& Vector4);
         Vector4f& operator -=(const Vector4f& Vector4);
         Vector4f& operator *=(const Vector4f& DataType);

@@ -51,4 +51,5 @@ protected:
     
 protected:
     void AnimateMaterial();
+
 };

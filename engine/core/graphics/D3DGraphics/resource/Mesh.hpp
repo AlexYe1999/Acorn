@@ -37,6 +37,7 @@ namespace Acorn{
         Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
         Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader  = nullptr;
 
+        Mesh(std::string name) : Name(std::move(name)){};
     };
 
 
