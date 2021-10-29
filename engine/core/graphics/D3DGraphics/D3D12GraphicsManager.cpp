@@ -226,7 +226,6 @@ namespace Acorn{
 
         // Draw calls
 
-        // Draw object inside the mirror
         DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Opaque)]); 
 
         m_pD3D12GraphicsCommandList->OMSetStencilRef(255);
@@ -240,6 +239,10 @@ namespace Acorn{
         m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Transparent"].Get());
         DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Transparent)]);
 
+        // Draw shadow
+        m_pD3D12GraphicsCommandList->OMSetStencilRef(0);
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Shadow"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Shadow)]);
 
         // End
 
@@ -727,10 +730,11 @@ namespace Acorn{
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Default"].GetAddressOf())
         );
 
+
         // DepthDtencil state
         D3D12_DEPTH_STENCIL_DESC depthDtencilDesc;
         depthDtencilDesc.DepthEnable = true;
-        depthDtencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        depthDtencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
         depthDtencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
         
         depthDtencilDesc.StencilEnable = true;
@@ -746,30 +750,14 @@ namespace Acorn{
         depthDtencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
         depthDtencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
 
-        //PSO for mirror
-        depthDtencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-        depthDtencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-        
-        depthDtencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-        depthDtencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-        depthDtencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-        depthDtencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-
-        depthDtencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-        depthDtencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-        depthDtencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-        depthDtencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        // PSO for mirror
 
         piplineStateDesc.DepthStencilState = depthDtencilDesc;
-        piplineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-
         m_pD3D12Device->CreateGraphicsPipelineState(
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Mirror"].GetAddressOf())
         );
 
-        //PSO for Transparent object
-
-        depthDtencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        // PSO for Transparent object
 
         D3D12_BLEND_DESC blendDesc = {};
         blendDesc.AlphaToCoverageEnable = false;
@@ -784,6 +772,9 @@ namespace Acorn{
         blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
         blendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
         blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        depthDtencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        depthDtencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+        depthDtencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 
         piplineStateDesc.DepthStencilState = depthDtencilDesc;
         piplineStateDesc.BlendState = blendDesc;
@@ -796,11 +787,11 @@ namespace Acorn{
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Transparent"].GetAddressOf())
         );
 
-        //PSO for reflrcted object
+        // PSO for reflrcted object
         depthDtencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        depthDtencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         depthDtencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
         depthDtencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-        depthDtencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
 
         piplineStateDesc.RasterizerState.FrontCounterClockwise = true;
         piplineStateDesc.DepthStencilState = depthDtencilDesc;
@@ -809,8 +800,18 @@ namespace Acorn{
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Reflected"].GetAddressOf())
         );
 
-
-
+        // PSO for shadow
+        depthDtencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        depthDtencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_INCR;
+        //piplineStateDesc.RasterizerState.FrontCounterClockwise = false;
+        piplineStateDesc.DepthStencilState = depthDtencilDesc;
+        piplineStateDesc.PS = {
+            m_pPSByteCode["DefaultPS"]->GetBufferPointer(),
+            m_pPSByteCode["DefaultPS"]->GetBufferSize()
+        };
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Shadow"].GetAddressOf())
+        );
     }
 
     StaticSamplerArray D3D12GraphicsManager::GetStaticSamplers(){
@@ -937,6 +938,7 @@ namespace Acorn{
 
 
         m_MainPassCB.Lights[0].Strength = Vector3f(0.4f, 0.4f, 0.4f);
+        m_MainPassCB.Lights[0].Position = Vector3f(40.0f, 20.0f, 20.0f);
 
         m_MainPassCB.Lights[1].Position = Vector3f(
             105.0f * cosf(m_pTimer->TotalTime() / 10.0f),
@@ -986,6 +988,8 @@ namespace Acorn{
                 item->DirtyCount--;
             }
         }
+
+
     }
 
     void D3D12GraphicsManager::UpdateMaterialConstBuffer(){

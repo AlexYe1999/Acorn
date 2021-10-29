@@ -174,10 +174,20 @@ void TextureApp::CreateMaterial(){
 	mirror->Roughness = 0.5f;
     mirror->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
+    auto shadow = std::make_unique<Acorn::Material>();
+    shadow->Name = "shadow";
+	shadow->MatCBIndex = 4;
+	shadow->DiffuseSrvHeapIndex = 3;
+	shadow->DiffuseAlbedo = Acorn::Vector4f(0.0f, 0.0f, 0.0f, 0.5f);
+	shadow->FresnelR0 = Acorn::Vector3f(0.001f, 0.001f, 0.001f);
+	shadow->Roughness = 0.0f;
+    shadow->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
     m_pScene->Materials[grass->Name] = std::move(grass);
     m_pScene->Materials[water->Name] = std::move(water);
     m_pScene->Materials[crate->Name] = std::move(crate);
     m_pScene->Materials[mirror->Name] = std::move(mirror);
+    m_pScene->Materials[shadow->Name] = std::move(shadow);
 }
 
 void TextureApp::CreateMesh(){
@@ -342,7 +352,7 @@ void TextureApp::CreateRenderItem(){
 
     uint16_t objIndex = 0;
 
-    // mirror
+    // Mirror
     auto mirror = std::make_unique<Acorn::RenderItem>();
     mirror->World = DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f);
     mirror->Mesh = m_pScene->Meshes["MirrorGeo"].get();
@@ -353,13 +363,29 @@ void TextureApp::CreateRenderItem(){
     mirror->StartVertexLocation = mirror->Mesh->SubMesh["Mirror"].StartVertexLocation;
     mirror->StartIndexLocation = mirror->Mesh->SubMesh["Mirror"].StartIndexLocation;
     mirror->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+
+    // Shadow of mirror
+    auto Shadow = std::make_unique<Acorn::RenderItem>();
+	DirectX::XMVECTOR shadowPlane = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // xz plane
+	DirectX::XMVECTOR toMainLight = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 0.0f);
+	DirectX::XMMATRIX S = DirectX::XMMatrixShadow(shadowPlane, toMainLight);
+	DirectX::XMMATRIX shadowOffsetY = DirectX::XMMatrixTranslation(0.0f, 0.001f, 0.0f);
+
+    *Shadow = *mirror;
+    Shadow->World *= S * shadowOffsetY;
+    Shadow->Mat = m_pScene->Materials["shadow"].get();
+    Shadow->ObjCBIndex = objIndex++;
+
     m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Mirrors)].push_back(std::move(mirror.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Shadow)].push_back(std::move(Shadow.get()));
     m_pScene->AllRenderItems.push_back(std::move(mirror));
+    m_pScene->AllRenderItems.push_back(std::move(Shadow));
+
     Acorn::Matrix4f reflectedMatrix = DirectX::XMMatrixReflect(
          DirectX::XMLoadFloat4(&Acorn::Vector4f(0.0f, 0.0f, -1.0f, 0.0f))
     );
 
-    // land
+    // Land
     auto land = std::make_unique<Acorn::RenderItem>();
     land->World = DirectX::XMMatrixScaling(4.0f, 4.0f, 4.0f);
     land->Mesh = m_pScene->Meshes["LandGeo"].get();
@@ -371,7 +397,7 @@ void TextureApp::CreateRenderItem(){
     land->StartIndexLocation = land->Mesh->SubMesh["Land"].StartIndexLocation;
     land->DirtyCount = g_GraphicsConfig.FrameResourceCount;
  
-    // reflected land
+    // Reflected land
     auto reflectedLand = std::make_unique<Acorn::RenderItem>();
     *reflectedLand = *land;
     reflectedLand->World *= reflectedMatrix;
@@ -382,7 +408,7 @@ void TextureApp::CreateRenderItem(){
     m_pScene->AllRenderItems.push_back(std::move(land));
     m_pScene->AllRenderItems.push_back(std::move(reflectedLand));
 
-    // box
+    // Box
     auto box = std::make_unique<Acorn::RenderItem>();
     box->World = DirectX::XMMatrixScaling(15.0f, 15.0f, 15.0f)
         * DirectX::XMMatrixTranslation(0.0f, 5.0f,20.0f);
@@ -395,7 +421,7 @@ void TextureApp::CreateRenderItem(){
     box->StartIndexLocation = box->Mesh->SubMesh["Box"].StartIndexLocation;
     box->DirtyCount = g_GraphicsConfig.FrameResourceCount;
 
-    // reflected box
+    // Reflected box
     auto reflectedBox = std::make_unique<Acorn::RenderItem>();
     *reflectedBox = *box;
     reflectedBox->World *= reflectedMatrix;
@@ -406,7 +432,7 @@ void TextureApp::CreateRenderItem(){
     m_pScene->AllRenderItems.push_back(std::move(box));
     m_pScene->AllRenderItems.push_back(std::move(reflectedBox));
     
-    // wave
+    // Wave
     auto wave = std::make_unique<Acorn::RenderItem>();
     wave->World = DirectX::XMMatrixScaling(4.0f, 4.0f, 4.0f);
     wave->Mesh = m_pScene->DynamicMeshes["WaveGeo"].get();
@@ -469,6 +495,7 @@ void TextureApp::UpdateScene(){
     CopyMemory(vertexBuffer, vertices.data(), waveVbByteSize);
 
     AnimateMaterial();
+
 }
 
 void TextureApp::AnimateMaterial(){
