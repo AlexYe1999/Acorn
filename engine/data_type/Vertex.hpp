@@ -11,7 +11,31 @@ namespace Acorn{
         static std::array<D3D12_INPUT_ELEMENT_DESC, 2> Desc;
     };
 
+    struct TreeSpriteVertex{
+        TreeSpriteVertex() = default;
+        TreeSpriteVertex(
+            float x, float y, float z,
+            float width, float height
+        ) : 
+            Position(x, y, z),
+            Size(width, height)
+        {}
+        Vector3f Position;
+        Vector2f Size;
+        static std::array<D3D12_INPUT_ELEMENT_DESC, 2> Desc;
+    };
+
     struct Vertex{
+        Vertex() = default;
+        Vertex(
+            float x, float y, float z, 
+            float nx, float ny, float nz,
+            float u, float v
+        ) :
+            Position(x, y, z),
+            Normal(nx, ny, nz),
+            TexC(u, v)
+        {}
         Vector3f Position;
         Vector3f Normal;
         Vector2f TexC;

@@ -7,6 +7,7 @@
 namespace Acorn{
 
     struct Material{
+        Material(std::string name = "") : Name(std::move(name)){}
         std::string Name;
 
         int16_t MatCBIndex = -1;

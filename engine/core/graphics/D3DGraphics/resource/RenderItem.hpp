@@ -7,6 +7,16 @@
 
 namespace Acorn{
 
+    enum class RenderLayer : uint16_t {
+        Opaque = 0,
+        Mirrors,
+        Reflected,
+        Transparent,
+        Shadow,
+        Sprite,
+        LayerCount
+    };
+
     struct RenderItem{
         RenderItem() = default;
 
@@ -17,7 +27,6 @@ namespace Acorn{
         Material* Mat = nullptr;
         D3D12_PRIMITIVE_TOPOLOGY PrimitiveType 
             = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
 
         uint16_t DirtyCount = 0;
         uint16_t IndexCount = 0;

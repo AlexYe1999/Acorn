@@ -83,7 +83,7 @@ void TextureApp::BuildScene(){
 
     m_pScene = std::make_unique<Acorn::Scene>();
     m_pScene->MainCamera.LookAt(
-        Acorn::Vector3f(-98.0f, 80.0f, 100.0f),
+        Acorn::Vector3f(-98.0f, 40.0f, 100.0f),
         Acorn::Vector3f(0.0f, 0.0f, 0.0f),
         Acorn::Vector3f(0.0f, 1.0f, 0.0f)
     );
@@ -124,15 +124,19 @@ void TextureApp::CreateTexture(){
     crateTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/WireFence.dds";
     crateTex->Name = "CrateTexture";
 
+    auto treeTex = std::make_unique<Acorn::Texture>();
+    treeTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/tree01S.dds";
+    treeTex->Name = "TreeTexture";
+
     m_pScene->Textures[grassTex->Name] = std::move(grassTex);
     m_pScene->Textures[waveTex->Name] = std::move(waveTex);
     m_pScene->Textures[crateTex->Name] = std::move(crateTex);
+    m_pScene->Textures[treeTex->Name] = std::move(treeTex);
 }
 
 void TextureApp::CreateMaterial(){
 
-    auto grass = std::make_unique<Acorn::Material>();
-    grass->Name = "grass";
+    auto grass = std::make_unique<Acorn::Material>("grass");
     grass->MatTransform =  DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f);
     grass->MatCBIndex = 0;
     grass->DiffuseSrvHeapIndex = 0;
@@ -141,8 +145,7 @@ void TextureApp::CreateMaterial(){
     grass->Roughness = 0.125f;
     grass->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
-    auto water = std::make_unique<Acorn::Material>();
-    water->Name = "water";
+    auto water = std::make_unique<Acorn::Material>("water");
     water->MatCBIndex = 1;
     water->DiffuseSrvHeapIndex = 1;
     water->DiffuseAlbedo = Acorn::Vector4f(0.0f, 0.2f, 0.6f, 0.5f);
@@ -150,8 +153,7 @@ void TextureApp::CreateMaterial(){
     water->Roughness = 0.0f;
     water->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
-    auto crate = std::make_unique<Acorn::Material>();
-    crate->Name = "crate";
+    auto crate = std::make_unique<Acorn::Material>("crate");
 	crate->MatCBIndex = 2;
 	crate->DiffuseSrvHeapIndex = 2;
 	crate->DiffuseAlbedo = Acorn::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -159,17 +161,26 @@ void TextureApp::CreateMaterial(){
 	crate->Roughness = 0.2f;
     crate->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
-    m_pScene->Materials["grass"] = std::move(grass);
-    m_pScene->Materials["water"] = std::move(water);
-    m_pScene->Materials["crate"] = std::move(crate);
+    auto tree = std::make_unique<Acorn::Material>("tree");
+	tree->MatCBIndex = 3;
+	tree->DiffuseSrvHeapIndex = 3;
+	tree->DiffuseAlbedo = Acorn::Vector4f(0.2f, 0.6f, 0.2f, 1.0f);
+	tree->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
+	tree->Roughness = 0.2f;
+    tree->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
+    m_pScene->Materials[grass->Name] = std::move(grass);
+    m_pScene->Materials[water->Name] = std::move(water);
+    m_pScene->Materials[crate->Name] = std::move(crate);
+    m_pScene->Materials[tree->Name] = std::move(tree);
 }
 
 void TextureApp::CreateMesh(){
     using GeoGenerator = LemonCube::GeometryGenerator;
-    m_pWaves = std::make_unique<Waves>(105.0f, 105.0f, 1.0f, 0.03f, 4.0f, 0.2f);
 
     GeoGenerator geoGen;
 
+    // Mesh of box 
     GeoGenerator::MeshData boxGeo = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
     std::vector<Acorn::Vertex> boxVertices(boxGeo.vertices.size());
 
@@ -179,8 +190,7 @@ void TextureApp::CreateMesh(){
         boxVertices[index].TexC = boxGeo.vertices[index].uv;
     }
     
-    std::unique_ptr<Acorn::Mesh> box = std::make_unique<Acorn::Mesh>();
-    box->Name = "BoxGeo";
+    std::unique_ptr<Acorn::Mesh> box = std::make_unique<Acorn::Mesh>("BoxGeo");
 
     const uint32_t boxVbByteSize = boxVertices.size() * sizeof(Acorn::Vertex);
     const uint32_t boxIbByteSize = boxGeo.indices.size() * sizeof(uint16_t);
@@ -204,7 +214,7 @@ void TextureApp::CreateMesh(){
     box->SubMesh["Box"] = std::move(boxSubMesh);
     m_pScene->Meshes[box->Name] = std::move(box);
 
-
+    // Mesh of land
     GeoGenerator::MeshData grid = geoGen.CreateGrid(105.0f, 105.0f, 50, 50);
     std::vector<Acorn::Vertex> landVertices(grid.vertices.size());
 
@@ -216,8 +226,8 @@ void TextureApp::CreateMesh(){
         landVertices[index].Normal = GetHillsNormal(p.x, p.z);
         landVertices[index].TexC = grid.vertices[index].uv;
     }
-    std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>();
-    land->Name = "LandGeo";
+
+    std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>("LandGeo");
 
     const uint32_t landVbByteSize = grid.vertices.size() * sizeof(Acorn::Vertex);
     const uint32_t landIbByteSize = grid.indices.size() * sizeof(uint16_t);
@@ -241,7 +251,8 @@ void TextureApp::CreateMesh(){
     land->SubMesh["Land"] = std::move(landSubMesh);
     m_pScene->Meshes[land->Name] = std::move(land);
 
-
+    // Mesh of Wave
+    m_pWaves = std::make_unique<Waves>(105.0f, 105.0f, 1.0f, 0.03f, 4.0f, 0.2f);
     std::vector<std::uint16_t> indices(3 * m_pWaves->TriangleCount());
 
     uint16_t m = m_pWaves->RowCount();
@@ -265,8 +276,7 @@ void TextureApp::CreateMesh(){
     const uint32_t waveVbByteSize = m_pWaves->VertexCount() * sizeof(Acorn::Vertex);
     const uint32_t waveIbByteSize = indices.size() * sizeof(uint16_t);
 
-    auto wave = std::make_unique<Acorn::Mesh>();
-    wave->Name = "WaveGeo";
+    auto wave = std::make_unique<Acorn::Mesh>("WaveGeo");
 
     D3DCreateBlob(waveVbByteSize, wave->VertexBufferCPU.GetAddressOf());
     D3DCreateBlob(waveIbByteSize, wave->IndexBufferCPU.GetAddressOf());
@@ -285,6 +295,40 @@ void TextureApp::CreateMesh(){
 
     wave->SubMesh["Wave"] = std::move(waveSubMesh);
     m_pScene->DynamicMeshes[wave->Name] = std::move(wave);
+
+    // Mesh of tree
+    std::unique_ptr<Acorn::Mesh> tree = std::make_unique<Acorn::Mesh>("TreeGeo");
+    std::vector<Acorn::TreeSpriteVertex> treeVertices = {
+        Acorn::TreeSpriteVertex(10.0f, 28.0f, 20.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-10.0f, 20.0f, -20.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-50.0f, 30.0f, -20.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-60.0f, 25.0f, -20.0f, 20.0f, 20.0f),
+        Acorn::TreeSpriteVertex(-80.0f, 40.0f, -20.0f, 35.0f, 30.0f)
+    };
+    std::vector<uint16_t> treeIndices = {0, 1, 2, 3, 4};
+
+    const uint32_t treeVbByteSize = treeVertices.size() * sizeof(Acorn::TreeSpriteVertex);
+    const uint32_t treeIbByteSize = treeIndices.size() * sizeof(uint16_t);
+
+    D3DCreateBlob(treeVbByteSize, tree->VertexBufferCPU.GetAddressOf());
+    D3DCreateBlob(treeIbByteSize, tree->IndexBufferCPU.GetAddressOf());
+
+    CopyMemory(tree->VertexBufferCPU->GetBufferPointer(), treeVertices.data(), treeVbByteSize);
+    CopyMemory(tree->IndexBufferCPU->GetBufferPointer(), treeIndices.data(), treeIbByteSize);
+
+    tree->VertexByteStride = sizeof(Acorn::TreeSpriteVertex);
+    tree->IndexFormat = DXGI_FORMAT_R16_UINT;
+    tree->VertexBufferByteSize = treeVbByteSize;
+    tree->IndexBufferByteSize = treeIbByteSize;
+
+    Acorn::SubMesh treeSubMesh;
+    treeSubMesh.StartVertexLocation = 0;
+    treeSubMesh.StartIndexLocation = 0;
+    treeSubMesh.IndexCount = treeIndices.size();
+
+    tree->SubMesh["Tree"] = std::move(treeSubMesh);
+    m_pScene->Meshes[tree->Name] = std::move(tree);
+
 }
 
 
@@ -302,7 +346,7 @@ void TextureApp::CreateRenderItem(){
     land->StartVertexLocation = land->Mesh->SubMesh["Land"].StartVertexLocation;
     land->StartIndexLocation = land->Mesh->SubMesh["Land"].StartIndexLocation;
     land->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->OpaqueRenderItems.push_back(std::move(land.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Opaque)].push_back(std::move(land.get()));
     m_pScene->AllRenderItems.push_back(std::move(land));
 
     auto box = std::make_unique<Acorn::RenderItem>();
@@ -315,7 +359,7 @@ void TextureApp::CreateRenderItem(){
     box->StartVertexLocation = box->Mesh->SubMesh["Box"].StartVertexLocation;
     box->StartIndexLocation = box->Mesh->SubMesh["Box"].StartIndexLocation;
     box->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->TransparentRenderItems.push_back(std::move(box.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Transparent)].push_back(std::move(box.get()));
     m_pScene->AllRenderItems.push_back(std::move(box));
 
     auto wave = std::make_unique<Acorn::RenderItem>();
@@ -328,8 +372,22 @@ void TextureApp::CreateRenderItem(){
     wave->StartVertexLocation = wave->Mesh->SubMesh["Wave"].StartVertexLocation;
     wave->StartIndexLocation = wave->Mesh->SubMesh["Wave"].StartIndexLocation;
     wave->DirtyCount = g_GraphicsConfig.FrameResourceCount;
-    m_pScene->TransparentRenderItems.push_back(std::move(wave.get()));
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Transparent)].push_back(std::move(wave.get()));
     m_pScene->AllRenderItems.push_back(std::move(wave));
+
+    auto tree = std::make_unique<Acorn::RenderItem>();
+    tree->World = DirectX::XMMatrixScaling(5.0f, 5.0f, 5.0f);
+    tree->Mesh = m_pScene->Meshes["TreeGeo"].get();
+    tree->Mat = m_pScene->Materials["tree"].get();
+    tree->ObjCBIndex = objIndex++;
+    tree->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    tree->IndexCount = tree->Mesh->SubMesh["Tree"].IndexCount;
+    tree->StartVertexLocation = tree->Mesh->SubMesh["Tree"].StartVertexLocation;
+    tree->StartIndexLocation = tree->Mesh->SubMesh["Tree"].StartIndexLocation;
+    tree->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Sprite)].push_back(std::move(tree.get()));
+    m_pScene->AllRenderItems.push_back(std::move(tree));
+
 }
 
 void TextureApp::UpdateInput(){
