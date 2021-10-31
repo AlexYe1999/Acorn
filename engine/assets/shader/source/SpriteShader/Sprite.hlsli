@@ -50,7 +50,7 @@ cbuffer MatCB : register(b2){
     float4x4 MatTransform;
 };
 
-Texture2D DiffuseMap : register(t0);
+Texture2DArray DiffuseMap : register(t0);
 
 SamplerState samPointWrap : register(s0);
 SamplerState samPointClamp : register(s1);

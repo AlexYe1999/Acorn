@@ -12,20 +12,20 @@ float4 CalcLighting(
 }
 
 float4 main(GSOut PSin) : SV_Target{
-
-    float3 toEye = EyePosW-PSin.PosW;
-	float distance = length(toEye);
-	float4 diffuseAlbedo = DiffuseAlbedo * DiffuseMap.Sample(samAnisotricWrap, PSin.TexC);
+	
+	float3 uvw = float3(PSin.TexC, PSin.PrimID%3);
+	float4 diffuseAlbedo = DiffuseAlbedo * DiffuseMap.Sample(samAnisotricWrap, uvw);
 	
 	clip(diffuseAlbedo.a - 0.01f);
 	
 	float4 ambient = AmbientLight * diffuseAlbedo;
-  
-    PSin.NormalW = normalize(PSin.NormalW);
+	float3 toEye = EyePosW - PSin.PosW;
+	float distance = length(toEye);
 	toEye /= distance;
 	
 	Material mat = { diffuseAlbedo, FresnelR0, 1.0f - Roughness };
 	
+	PSin.NormalW = normalize(PSin.NormalW);
 	float4 direct = CalcLighting(mat, PSin.PosW, PSin.NormalW, toEye);
 	float4 litColor = ambient + direct;
     

@@ -125,7 +125,7 @@ void TextureApp::CreateTexture(){
     crateTex->Name = "CrateTexture";
 
     auto treeTex = std::make_unique<Acorn::Texture>();
-    treeTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/tree01S.dds";
+    treeTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/treeArray2.dds";
     treeTex->Name = "TreeTexture";
 
     m_pScene->Textures[grassTex->Name] = std::move(grassTex);
@@ -140,7 +140,7 @@ void TextureApp::CreateMaterial(){
     grass->MatTransform =  DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f);
     grass->MatCBIndex = 0;
     grass->DiffuseSrvHeapIndex = 0;
-    grass->DiffuseAlbedo = Acorn::Vector4f(0.2f, 0.6f, 0.2f, 1.0f);
+    grass->DiffuseAlbedo = Acorn::Vector4f(0.6f, 0.6f, 0.6f, 1.0f);
     grass->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
     grass->Roughness = 0.125f;
     grass->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;

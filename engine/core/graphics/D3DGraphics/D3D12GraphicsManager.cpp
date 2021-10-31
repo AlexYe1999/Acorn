@@ -325,8 +325,12 @@ namespace Acorn{
         );
 
         hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
         srvDesc.Format = textures["TreeTexture"]->Resource->GetDesc().Format;
-        srvDesc.Texture2D.MipLevels = textures["TreeTexture"]->Resource->GetDesc().MipLevels;
+        srvDesc.Texture2DArray.MostDetailedMip = 0;
+        srvDesc.Texture2DArray.MipLevels = -1;
+        srvDesc.Texture2DArray.FirstArraySlice = 0;
+        srvDesc.Texture2DArray.ArraySize = textures["TreeTexture"]->Resource->GetDesc().DepthOrArraySize;
         m_pD3D12Device->CreateShaderResourceView(
             textures["TreeTexture"]->Resource.Get(), &srvDesc, hDescriptor
         );
@@ -450,7 +454,6 @@ namespace Acorn{
         }
 
     }
-
 
     void D3D12GraphicsManager::UpdateFrameResource(){
 
