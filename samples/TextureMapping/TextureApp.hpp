@@ -6,6 +6,7 @@
 #include"Vector.hpp"
 #include"Vertex.hpp"
 #include"BasicMouse.hpp"
+#include"BasicKeyBoard.hpp"
 #include"AppFramework.hpp"
 #include"GeometryGenerator.hpp"
 #include"D3D12GraphicsManager.hpp"
@@ -35,6 +36,7 @@ protected:
 
     Acorn::Timer m_Timer;
     Acorn::BasicMouse m_Mouse;
+    Acorn::BasicKeyBoard m_Keyboard;
 
     std::unique_ptr<Acorn::D3D12GraphicsManager> m_pGraphicsManager;
 

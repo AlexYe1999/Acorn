@@ -215,28 +215,27 @@ void TextureApp::CreateMesh(){
     m_pScene->Meshes[box->Name] = std::move(box);
 
     // Mesh of land
-    GeoGenerator::MeshData grid = geoGen.CreateGrid(105.0f, 105.0f, 50, 50);
-    std::vector<Acorn::Vertex> landVertices(grid.vertices.size());
+    std::vector<Acorn::Vertex> landVertices = {
+        Acorn::Vertex(-50.0f, 0.0f, +50.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f),
+        Acorn::Vertex(+50.0f, 0.0f, +50.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f),
+        Acorn::Vertex(-50.0f, 0.0f, -50.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+        Acorn::Vertex(+50.0f, 0.0f, -50.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f)
+    };
 
-    for(uint16_t index = 0; index < landVertices.size(); index++){
-        auto& p = grid.vertices[index].position;
-
-        landVertices[index].Position = p;
-        landVertices[index].Position.y = GetHillsHeight(p.x, p.z);
-        landVertices[index].Normal = GetHillsNormal(p.x, p.z);
-        landVertices[index].TexC = grid.vertices[index].uv;
-    }
+    std::vector<uint16_t> landIndices = {
+        0, 1, 2, 3
+    };
 
     std::unique_ptr<Acorn::Mesh> land = std::make_unique<Acorn::Mesh>("LandGeo");
 
-    const uint32_t landVbByteSize = grid.vertices.size() * sizeof(Acorn::Vertex);
-    const uint32_t landIbByteSize = grid.indices.size() * sizeof(uint16_t);
+    const uint32_t landVbByteSize = landVertices.size() * sizeof(Acorn::Vertex);
+    const uint32_t landIbByteSize = landIndices.size() * sizeof(uint16_t);
 
     D3DCreateBlob(landVbByteSize, land->VertexBufferCPU.GetAddressOf());
     D3DCreateBlob(landIbByteSize, land->IndexBufferCPU.GetAddressOf());
 
     CopyMemory(land->VertexBufferCPU->GetBufferPointer(), landVertices.data(), landVbByteSize);
-    CopyMemory(land->IndexBufferCPU->GetBufferPointer(), grid.indices.data(), landIbByteSize);
+    CopyMemory(land->IndexBufferCPU->GetBufferPointer(), landIndices.data(), landIbByteSize);
 
     land->VertexByteStride = sizeof(Acorn::Vertex);
     land->IndexFormat = DXGI_FORMAT_R16_UINT;
@@ -246,13 +245,13 @@ void TextureApp::CreateMesh(){
     Acorn::SubMesh landSubMesh;
     landSubMesh.StartVertexLocation = 0;
     landSubMesh.StartIndexLocation = 0;
-    landSubMesh.IndexCount = grid.indices.size();
+    landSubMesh.IndexCount = landIndices.size();
 
     land->SubMesh["Land"] = std::move(landSubMesh);
     m_pScene->Meshes[land->Name] = std::move(land);
 
     // Mesh of Wave
-    m_pWaves = std::make_unique<Waves>(105.0f, 105.0f, 1.0f, 0.03f, 4.0f, 0.2f);
+    m_pWaves = std::make_unique<Waves>(100.0f, 100.0f, 1.0f, 0.03f, 4.0f, 0.2f);
     std::vector<std::uint16_t> indices(3 * m_pWaves->TriangleCount());
 
     uint16_t m = m_pWaves->RowCount();
@@ -341,7 +340,7 @@ void TextureApp::CreateRenderItem(){
     land->Mesh = m_pScene->Meshes["LandGeo"].get();
     land->Mat = m_pScene->Materials["grass"].get();
     land->ObjCBIndex = objIndex++;
-    land->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    land->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST;
     land->IndexCount = land->Mesh->SubMesh["Land"].IndexCount;
     land->StartVertexLocation = land->Mesh->SubMesh["Land"].StartVertexLocation;
     land->StartIndexLocation = land->Mesh->SubMesh["Land"].StartIndexLocation;
@@ -403,6 +402,7 @@ void TextureApp::UpdateInput(){
     float phi = 0.002f * DirectX::XMConvertToRadians(deltaP.y);
     m_pScene->MainCamera.RotateY(theta);
     m_pScene->MainCamera.Pitch(phi);
+
 }
 
 void TextureApp::UpdateScene(){
@@ -436,6 +436,21 @@ void TextureApp::UpdateScene(){
     CopyMemory(vertexBuffer, vertices.data(), waveVbByteSize);
 
     AnimateMaterial();
+
+    Acorn::Vector3f forward(0.0f, 0.0f, 1.0f);
+    if(m_Keyboard.IsKeyDown('W')){
+        m_pScene->MainCamera.Walk(forward, 0.5f);
+    }
+    if(m_Keyboard.IsKeyDown('S')){
+        m_pScene->MainCamera.Walk(forward*-1.0f, 0.5f);
+    }
+    Acorn::Vector3f right(1.0f, 0.0f, 0.0f);
+    if(m_Keyboard.IsKeyDown('D')){
+        m_pScene->MainCamera.Walk(right, 0.5f);
+    }
+    if(m_Keyboard.IsKeyDown('A')){
+        m_pScene->MainCamera.Walk(right*-1.0f, 0.5f);
+    }
 }
 
 void TextureApp::AnimateMaterial(){
@@ -455,6 +470,14 @@ void TextureApp::AnimateMaterial(){
 
 LRESULT TextureApp::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
     switch (uMsg){
+        case WM_KEYDOWN:{
+            m_Keyboard.KeyDown(wParam);
+            break;
+        }
+        case WM_KEYUP:{
+            m_Keyboard.KeyUp(wParam);
+            break;
+        }
         case WM_LBUTTONDOWN:{
             SetCapture(hwnd);
             Acorn::Point2<int16_t> p;

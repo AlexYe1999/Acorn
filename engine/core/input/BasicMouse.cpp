@@ -2,15 +2,15 @@
 
 namespace Acorn{
 
-    void BasicMouse::KeyDown(const uint8_t key){
+    void BasicMouse::KeyDown(const uint16_t key){
         m_bKeyBitSet[key] = true;
     }
 
-    void BasicMouse::KeyUp(const uint8_t key){
+    void BasicMouse::KeyUp(const uint16_t key){
         m_bKeyBitSet[key] = false;
     }
 
-    bool BasicMouse::IsKeyDown(const uint8_t key) const{
+    bool BasicMouse::IsKeyDown(const uint16_t key) const{
         return m_bKeyBitSet[key];
     }
 

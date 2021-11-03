@@ -11,9 +11,9 @@ namespace Acorn{
         virtual void Finalize() override {}
         virtual void Tick() override {}
 
-        virtual void KeyDown(const uint8_t key) override;
-        virtual void KeyUp(const uint8_t key) override;
-        virtual bool IsKeyDown(const uint8_t key) const override;
+        virtual void KeyDown(const uint16_t key) override;
+        virtual void KeyUp(const uint16_t key) override;
+        virtual bool IsKeyDown(const uint16_t key) const override;
 
         void SetCurrPosition(const Point2<int16_t>& Position);
         void SetLastPosition(const Point2<int16_t>& Position);

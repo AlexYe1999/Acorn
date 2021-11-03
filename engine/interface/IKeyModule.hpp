@@ -5,7 +5,7 @@
 
 namespace Acorn{
 
-    template<uint8_t KeyNum>
+    template<uint16_t KeyNum>
     class IKeyModule : public IRuntimeModule{
     public:
         IKeyModule() : IRuntimeModule(){}
@@ -14,15 +14,15 @@ namespace Acorn{
         virtual void Finalize() = 0;
         virtual void Tick() = 0;
 
-        virtual void KeyDown(const uint8_t key){
+        virtual void KeyDown(const uint16_t key){
             m_bKeyBitSet[key] = true;    
         }
 
-        virtual void KeyUp(const uint8_t key){
+        virtual void KeyUp(const uint16_t key){
             m_bKeyBitSet[key] = false;
         }
 
-        virtual bool IsKeyDown(const uint8_t key) const{
+        virtual bool IsKeyDown(const uint16_t key) const{
             return m_bKeyBitSet[key];
         }
 

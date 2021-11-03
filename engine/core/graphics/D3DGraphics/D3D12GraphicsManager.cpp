@@ -214,7 +214,7 @@ namespace Acorn{
             1, &CurrentBackBufferView(), true, &DepthStencilView()
         );
 
-        m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
+        m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignatures["Shading"].Get());
 
         ID3D12DescriptorHeap *descriptorHeap[] = {m_pSrvHeap.Get()};
         m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
@@ -244,6 +244,7 @@ namespace Acorn{
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT
             )
         );
+
 
         m_pD3D12GraphicsCommandList->Close();
 
@@ -378,6 +379,11 @@ namespace Acorn{
         m_pShaderByteCode["SpriteVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpriteVS.cso");
         m_pShaderByteCode["SpriteGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpriteGS.cso");
         m_pShaderByteCode["SpritePS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpritePS.cso");
+        m_pShaderByteCode["TessVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessVS.cso");
+        m_pShaderByteCode["TessHS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessHS.cso");
+        m_pShaderByteCode["TessDS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessDS.cso");
+        m_pShaderByteCode["TessPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessPS.cso");
+
     }
     
     void D3D12GraphicsManager::ClearShaders(){
@@ -668,7 +674,7 @@ namespace Acorn{
             0, 
             serializedRootSig->GetBufferPointer(),
             serializedRootSig->GetBufferSize(),
-            IID_PPV_ARGS(m_pRootSignature.GetAddressOf())
+            IID_PPV_ARGS(m_pRootSignatures["Shading"].GetAddressOf())
         );
 
     }
@@ -696,24 +702,30 @@ namespace Acorn{
             Vertex::Desc.size()
         };
         piplineStateDesc.StreamOutput = {};
-        piplineStateDesc.pRootSignature = m_pRootSignature.Get();
+        piplineStateDesc.pRootSignature = m_pRootSignatures["Shading"].Get();
         piplineStateDesc.VS = {
-            m_pShaderByteCode["DefaultVS"]->GetBufferPointer(),
-            m_pShaderByteCode["DefaultVS"]->GetBufferSize()
+            m_pShaderByteCode["TessVS"]->GetBufferPointer(),
+            m_pShaderByteCode["TessVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {
+            m_pShaderByteCode["TessHS"]->GetBufferPointer(),
+            m_pShaderByteCode["TessHS"]->GetBufferSize()
+        };
+        piplineStateDesc.DS = {
+            m_pShaderByteCode["TessDS"]->GetBufferPointer(),
+            m_pShaderByteCode["TessDS"]->GetBufferSize()
         };
         piplineStateDesc.PS = {
-            m_pShaderByteCode["DefaultPS"]->GetBufferPointer(),
-            m_pShaderByteCode["DefaultPS"]->GetBufferSize()
+            m_pShaderByteCode["TessPS"]->GetBufferPointer(),
+            m_pShaderByteCode["TessPS"]->GetBufferSize()
         };
-        piplineStateDesc.DS = {};
-        piplineStateDesc.HS = {};
         piplineStateDesc.GS = {};
         piplineStateDesc.RasterizerState = rasterDesc;
         piplineStateDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         piplineStateDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         piplineStateDesc.SampleMask = UINT_MAX;
         piplineStateDesc.IBStripCutValue = {};
-        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
         piplineStateDesc.NumRenderTargets = 1;
         piplineStateDesc.RTVFormats[0] = g_GraphicsConfig.BackBufferFormat;
         piplineStateDesc.DSVFormat     = g_GraphicsConfig.DepthStansilFormat;
@@ -743,7 +755,14 @@ namespace Acorn{
         blendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
         blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
+        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         piplineStateDesc.BlendState = blendDesc;
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["DefaultVS"]->GetBufferPointer(),
+            m_pShaderByteCode["DefaultVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
         piplineStateDesc.PS = {
             m_pShaderByteCode["TransparentPS"]->GetBufferPointer(),
             m_pShaderByteCode["TransparentPS"]->GetBufferSize()

@@ -110,7 +110,7 @@ namespace Acorn{
         ComPtr<ID3D12Resource> m_pDsBuffer;
         FrameResourcePtrVector m_pFrameResource;
 
-        ComPtr<ID3D12RootSignature> m_pRootSignature;
+        std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> m_pRootSignatures;
 
         std::unordered_map<std::string, ComPtr<ID3DBlob>> m_pShaderByteCode;
 
