@@ -16,9 +16,10 @@
 #include<D3D12.h>
 #include<d3dcompiler.h>
 
+
 namespace Acorn{
     using Microsoft::WRL::ComPtr;
-    using FrameResourceT = FrameResource<PassConstant, ObjectConstant, MaterialConstant, Vertex>;
+    using FrameResourceT = FrameResource<PassConstant, InstanceData, MaterialData>;
     using FrameResourcePtrVector = std::vector<std::unique_ptr<FrameResourceT>>;
     using StaticSamplerArray = std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6>;
 

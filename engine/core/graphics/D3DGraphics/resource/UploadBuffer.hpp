@@ -10,7 +10,7 @@ namespace Acorn{
     template<typename DataType, bool isConstantBuffer>
     class UploadBuffer{
     public:
-        UploadBuffer(ID3D12Device* device, uint16_t elementCount)
+        UploadBuffer(ID3D12Device* device, uint32_t elementCount)
             : 
             m_pMappedData(nullptr),
             m_uElementCount(elementCount),
@@ -29,7 +29,6 @@ namespace Acorn{
             m_pUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_pMappedData));
         }
 
-
         UploadBuffer(const UploadBuffer& rhs) = delete;
         UploadBuffer& operator = (const UploadBuffer& rhs) = delete;
 
@@ -44,7 +43,7 @@ namespace Acorn{
             return m_pUploadBuffer.Get();
         }
 
-        void CopyData(uint16_t elementIndex, const DataType& data){
+        void CopyData(uint32_t elementIndex, const DataType& data){
             memcpy(&m_pMappedData[m_uElementByteSize * elementIndex], &data, sizeof(DataType));
         }
 
@@ -55,7 +54,7 @@ namespace Acorn{
         Microsoft::WRL::ComPtr<ID3D12Resource> m_pUploadBuffer;
         BYTE* m_pMappedData;
 
-        uint16_t m_uElementCount;
+        uint32_t m_uElementCount;
         uint16_t m_uElementByteSize;
     };
 

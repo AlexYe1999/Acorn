@@ -3,7 +3,7 @@
 #include"Matrix.hpp"
 #include<cstdint>
 #include<utility>
-
+#include<DirectXCollision.h>
 namespace Acorn{
     
     class Camera{
@@ -27,6 +27,7 @@ namespace Acorn{
         const Matrix4f& GetViewMatrix();
         const Matrix4f& GetProjMatrix() const;
 
+        const DirectX::BoundingFrustum& GetFrustum(){ return m_Frustum; };
     private:
         void CalcViewMatrix();
 
@@ -46,6 +47,8 @@ namespace Acorn{
 
         Matrix4f m_mViewMatrix;
         Matrix4f m_mProjMatrix;
+
+        DirectX::BoundingFrustum m_Frustum;
     };
 
 

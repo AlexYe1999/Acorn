@@ -219,23 +219,34 @@ namespace Acorn{
         ID3D12DescriptorHeap *descriptorHeap[] = {m_pSrvHeap.Get()};
         m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
 
-        auto& PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB;
+        m_pD3D12GraphicsCommandList->SetGraphicsRootDescriptorTable(
+            3, m_pSrvHeap->GetGPUDescriptorHandleForHeapStart()
+        );
+
+        auto& PassCB = currFrameResource->PassCB;
         m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
-            0, PassCB->Resource()->GetGPUVirtualAddress()
+            2, PassCB->Resource()->GetGPUVirtualAddress()
+        );
+
+        auto& matBuffer = currFrameResource->MaterialCB;
+        m_pD3D12GraphicsCommandList->SetGraphicsRootShaderResourceView(
+            1, matBuffer->Resource()->GetGPUVirtualAddress()
+        );
+
+        auto& insBuffer = currFrameResource->ObjectCB;
+        m_pD3D12GraphicsCommandList->SetGraphicsRootShaderResourceView(
+            0, insBuffer->Resource()->GetGPUVirtualAddress()
         );
 
         // Draw calls
+        m_pD3D12GraphicsCommandList->IASetVertexBuffers(0, 1, &m_pScene->Instances->Mesh->VertexBufferView());
+        m_pD3D12GraphicsCommandList->IASetIndexBuffer(&m_pScene->Instances->Mesh->IndexBufferView());
+        m_pD3D12GraphicsCommandList->IASetPrimitiveTopology(m_pScene->Instances->PrimitiveType);
 
-        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Opaque)]); 
-
-        // Draw Sprite with GS
-        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Sprite"].Get());
-        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Sprite)]);
-
-        // Draw transparent object 
-        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Transparent"].Get());
-        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Transparent)]);
-
+        m_pD3D12GraphicsCommandList->DrawIndexedInstanced(
+            m_pScene->Instances->IndexCount, m_pScene->Instances->VisibleInstanceCount, 
+            m_pScene->Instances->StartIndexLocation, m_pScene->Instances->StartVertexLocation, 0
+        );
         // End
 
         m_pD3D12GraphicsCommandList->ResourceBarrier(
@@ -244,7 +255,6 @@ namespace Acorn{
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT
             )
         );
-
 
         m_pD3D12GraphicsCommandList->Close();
 
@@ -305,35 +315,59 @@ namespace Acorn{
         CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(
             m_pSrvHeap->GetCPUDescriptorHandleForHeapStart()
         );
-        srvDesc.Format = textures["GrassTexture"]->Resource->GetDesc().Format;
-        srvDesc.Texture2D.MipLevels = textures["GrassTexture"]->Resource->GetDesc().MipLevels;
+        srvDesc.Format = textures["Bricks0"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Bricks0"]->Resource->GetDesc().MipLevels;
         m_pD3D12Device->CreateShaderResourceView(
-            textures["GrassTexture"]->Resource.Get(), &srvDesc, hDescriptor
+            textures["Bricks0"]->Resource.Get(), &srvDesc, hDescriptor
         );
 
         hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
-        srvDesc.Format = textures["WaveTexture"]->Resource->GetDesc().Format;
-        srvDesc.Texture2D.MipLevels = textures["WaveTexture"]->Resource->GetDesc().MipLevels;
+        srvDesc.Format = textures["Bricks1"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Bricks1"]->Resource->GetDesc().MipLevels;
         m_pD3D12Device->CreateShaderResourceView(
-            textures["WaveTexture"]->Resource.Get(), &srvDesc, hDescriptor
+            textures["Bricks1"]->Resource.Get(), &srvDesc, hDescriptor
         );
 
         hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
-        srvDesc.Format = textures["CrateTexture"]->Resource->GetDesc().Format;
-        srvDesc.Texture2D.MipLevels = textures["CrateTexture"]->Resource->GetDesc().MipLevels;
+        srvDesc.Format = textures["Bricks2"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Bricks2"]->Resource->GetDesc().MipLevels;
         m_pD3D12Device->CreateShaderResourceView(
-            textures["CrateTexture"]->Resource.Get(), &srvDesc, hDescriptor
+            textures["Bricks2"]->Resource.Get(), &srvDesc, hDescriptor
         );
 
         hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-        srvDesc.Format = textures["TreeTexture"]->Resource->GetDesc().Format;
-        srvDesc.Texture2DArray.MostDetailedMip = 0;
-        srvDesc.Texture2DArray.MipLevels = -1;
-        srvDesc.Texture2DArray.FirstArraySlice = 0;
-        srvDesc.Texture2DArray.ArraySize = textures["TreeTexture"]->Resource->GetDesc().DepthOrArraySize;
+        srvDesc.Format = textures["Grass"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Grass"]->Resource->GetDesc().MipLevels;
         m_pD3D12Device->CreateShaderResourceView(
-            textures["TreeTexture"]->Resource.Get(), &srvDesc, hDescriptor
+            textures["Grass"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["Ice"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Ice"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["Ice"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["Water"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Water"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["Water"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["Wood1"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Wood1"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["Wood1"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["Wood2"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["Wood2"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["Wood2"]->Resource.Get(), &srvDesc, hDescriptor
         );
 
     }
@@ -360,30 +394,11 @@ namespace Acorn{
                 );
         }
 
-        for(auto& mesh : m_pScene->DynamicMeshes){
-            mesh.second->IndexBufferGPU =
-                D3DUtil::CreateDefaultBuffer(
-                    m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
-                    mesh.second->IndexBufferCPU->GetBufferPointer(),
-                    mesh.second->IndexBufferCPU->GetBufferSize(),
-                    mesh.second->IndexBufferUploader
-                );
-        }
-
     }
 
     void D3D12GraphicsManager::InitializeShaders(){
-        m_pShaderByteCode["DefaultVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\VS.cso");
-        m_pShaderByteCode["DefaultPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\PS.cso");
-        m_pShaderByteCode["TransparentPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TransparentPS.cso");
-        m_pShaderByteCode["SpriteVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpriteVS.cso");
-        m_pShaderByteCode["SpriteGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpriteGS.cso");
-        m_pShaderByteCode["SpritePS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\SpritePS.cso");
-        m_pShaderByteCode["TessVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessVS.cso");
-        m_pShaderByteCode["TessHS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessHS.cso");
-        m_pShaderByteCode["TessDS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessDS.cso");
-        m_pShaderByteCode["TessPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessPS.cso");
-
+        m_pShaderByteCode["VS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\VS.cso");
+        m_pShaderByteCode["PS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\PS.cso");
     }
     
     void D3D12GraphicsManager::ClearShaders(){
@@ -397,66 +412,14 @@ namespace Acorn{
     void D3D12GraphicsManager::InitializeConstants(){
 
         const auto& frameResourceCount = g_GraphicsConfig.FrameResourceCount;
-        const auto& mesh = m_pScene->DynamicMeshes["WaveGeo"];
-        const auto& vertexCount = mesh->VertexBufferByteSize / mesh->VertexByteStride;
+        const auto& instances = m_pScene->Instances;
 
-        for(int index = 0; index < frameResourceCount; index++){
+        for(uint32_t index = 0; index < frameResourceCount; index++){
             m_pFrameResource.push_back(std::move(
                 std::make_unique<FrameResourceT>(
-                    m_pD3D12Device.Get(), 1, m_pScene->AllRenderItems.size(),
-                    m_pScene->Materials.size(), vertexCount)
+                    m_pD3D12Device.Get(), 1, instances->InstanceDataArray.size(),
+                    m_pScene->Materials.size())
             ));
-        }
-
-        uint16_t objCount = m_pScene->AllRenderItems.size();
-        uint16_t numDescriptor = (objCount+1) * frameResourceCount;
-
-        D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-        cbvHeapDesc.NumDescriptors = numDescriptor;
-        cbvHeapDesc.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        cbvHeapDesc.NodeMask = 0;
-         
-        m_pD3D12Device->CreateDescriptorHeap(
-            &cbvHeapDesc, IID_PPV_ARGS(m_pCbvHeap.GetAddressOf())
-        );
-
-        for(int index = 0; index < frameResourceCount; index++){
-            const auto& objectCB = m_pFrameResource[index]->ObjectCB->Resource();
-            auto cbAddress = objectCB->GetGPUVirtualAddress();
-
-            for(int i = 0; i < objCount; i++){
-                uint16_t heapIndex = index * objCount + i;
-                auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-                    m_pCbvHeap->GetCPUDescriptorHandleForHeapStart()
-                );
-                handle.Offset(heapIndex, m_uCbvSrvUavDescriptorSize);
-
-                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-                cbvDesc.BufferLocation = cbAddress;
-                cbvDesc.SizeInBytes = D3DUtil::CalcAlignment(sizeof(ObjectConstant));
-
-                m_pD3D12Device->CreateConstantBufferView(&cbvDesc, handle);
-
-                cbAddress += D3DUtil::CalcAlignment(sizeof(ObjectConstant));
-            }
-        }
-
-        auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-            m_pCbvHeap->GetCPUDescriptorHandleForHeapStart()
-        );
-        handle.Offset(frameResourceCount*objCount, m_uCbvSrvUavDescriptorSize);
-        for(int index = 0; index < frameResourceCount; index++){
-            const auto& passCB = m_pFrameResource[index]->PassCB->Resource();
-            auto cbAddress = passCB->GetGPUVirtualAddress();
-
-            D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-            cbvDesc.BufferLocation = cbAddress;
-            cbvDesc.SizeInBytes = D3DUtil::CalcAlignment(sizeof(PassConstant));
-
-            m_pD3D12Device->CreateConstantBufferView(&cbvDesc, handle);
-
-            handle.Offset(1, m_uCbvSrvUavDescriptorSize);
         }
 
     }
@@ -477,13 +440,6 @@ namespace Acorn{
 
         UpdateConstants();
 
-        auto vertexVB = currFrameResource->DynamicVB.get();
-        vertexVB->CopyData(
-            static_cast<BYTE*>(
-                m_pScene->DynamicMeshes["WaveGeo"]->VertexBufferCPU->GetBufferPointer())
-        );
-
-        m_pScene->DynamicMeshes["WaveGeo"]->VertexBufferGPU = vertexVB ->Resource();
     }
 
     void D3D12GraphicsManager::UpdateConstants(){
@@ -647,14 +603,16 @@ namespace Acorn{
     }
 
     void D3D12GraphicsManager::BuildRootSignature(){
-        CD3DX12_ROOT_PARAMETER slotRootParam[4];
-        CD3DX12_DESCRIPTOR_RANGE cbvTable;
-        cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-        slotRootParam[0].InitAsConstantBufferView(0);
-        slotRootParam[1].InitAsConstantBufferView(1);
-        slotRootParam[2].InitAsConstantBufferView(2);
-        slotRootParam[3].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_PIXEL);
+        //default shading 
+        CD3DX12_ROOT_PARAMETER slotRootParam[4];
+        CD3DX12_DESCRIPTOR_RANGE srvTable;
+        srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 0);
+
+        slotRootParam[0].InitAsShaderResourceView(0, 1);
+        slotRootParam[1].InitAsShaderResourceView(1, 1);
+        slotRootParam[2].InitAsConstantBufferView(0);
+        slotRootParam[3].InitAsDescriptorTable(1, &srvTable, D3D12_SHADER_VISIBILITY_PIXEL);
 
         StaticSamplerArray staticSampler = GetStaticSamplers();
 
@@ -670,7 +628,7 @@ namespace Acorn{
             serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()
         );
 
-        m_pD3D12Device->CreateRootSignature(
+        m_pD3D12Device->CreateRootSignature( 
             0, 
             serializedRootSig->GetBufferPointer(),
             serializedRootSig->GetBufferSize(),
@@ -704,20 +662,12 @@ namespace Acorn{
         piplineStateDesc.StreamOutput = {};
         piplineStateDesc.pRootSignature = m_pRootSignatures["Shading"].Get();
         piplineStateDesc.VS = {
-            m_pShaderByteCode["TessVS"]->GetBufferPointer(),
-            m_pShaderByteCode["TessVS"]->GetBufferSize()
-        };
-        piplineStateDesc.HS = {
-            m_pShaderByteCode["TessHS"]->GetBufferPointer(),
-            m_pShaderByteCode["TessHS"]->GetBufferSize()
-        };
-        piplineStateDesc.DS = {
-            m_pShaderByteCode["TessDS"]->GetBufferPointer(),
-            m_pShaderByteCode["TessDS"]->GetBufferSize()
+            m_pShaderByteCode["VS"]->GetBufferPointer(),
+            m_pShaderByteCode["VS"]->GetBufferSize()
         };
         piplineStateDesc.PS = {
-            m_pShaderByteCode["TessPS"]->GetBufferPointer(),
-            m_pShaderByteCode["TessPS"]->GetBufferSize()
+            m_pShaderByteCode["PS"]->GetBufferPointer(),
+            m_pShaderByteCode["PS"]->GetBufferSize()
         };
         piplineStateDesc.GS = {};
         piplineStateDesc.RasterizerState = rasterDesc;
@@ -725,7 +675,7 @@ namespace Acorn{
         piplineStateDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         piplineStateDesc.SampleMask = UINT_MAX;
         piplineStateDesc.IBStripCutValue = {};
-        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         piplineStateDesc.NumRenderTargets = 1;
         piplineStateDesc.RTVFormats[0] = g_GraphicsConfig.BackBufferFormat;
         piplineStateDesc.DSVFormat     = g_GraphicsConfig.DepthStansilFormat;
@@ -738,59 +688,6 @@ namespace Acorn{
         //PSO for default object
         m_pD3D12Device->CreateGraphicsPipelineState(
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Default"].GetAddressOf())
-        );
-
-        // PSO for Transparent object
-        D3D12_BLEND_DESC blendDesc = {};
-        blendDesc.AlphaToCoverageEnable = false;
-        blendDesc.IndependentBlendEnable = false;
-        blendDesc.RenderTarget[0].BlendEnable = true;
-        blendDesc.RenderTarget[0].LogicOpEnable = false;
-        blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-        blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-        blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-        blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-        blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
-        blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-        blendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
-        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        piplineStateDesc.BlendState = blendDesc;
-        piplineStateDesc.VS = {
-            m_pShaderByteCode["DefaultVS"]->GetBufferPointer(),
-            m_pShaderByteCode["DefaultVS"]->GetBufferSize()
-        };
-        piplineStateDesc.HS = {};
-        piplineStateDesc.DS = {};
-        piplineStateDesc.PS = {
-            m_pShaderByteCode["TransparentPS"]->GetBufferPointer(),
-            m_pShaderByteCode["TransparentPS"]->GetBufferSize()
-        };
-        m_pD3D12Device->CreateGraphicsPipelineState(
-            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Transparent"].GetAddressOf())
-        );
-
-        // PSO for sprite
-        piplineStateDesc.InputLayout = {
-            TreeSpriteVertex::Desc.data(),
-            TreeSpriteVertex::Desc.size()
-        };
-        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-        piplineStateDesc.VS = {
-            m_pShaderByteCode["SpriteVS"]->GetBufferPointer(),
-            m_pShaderByteCode["SpriteVS"]->GetBufferSize()
-        };
-        piplineStateDesc.GS = {
-            m_pShaderByteCode["SpriteGS"]->GetBufferPointer(),
-            m_pShaderByteCode["SpriteGS"]->GetBufferSize()
-        };
-        piplineStateDesc.PS = {
-            m_pShaderByteCode["SpritePS"]->GetBufferPointer(),
-            m_pShaderByteCode["SpritePS"]->GetBufferSize()
-        };
-        m_pD3D12Device->CreateGraphicsPipelineState(
-            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Sprite"].GetAddressOf())
         );
 
     }
@@ -847,7 +744,7 @@ namespace Acorn{
             linearWrap, linearClamp,
             anisotropicWrap, anisotropicClamp};
     }
-
+    
     void D3D12GraphicsManager::DrawRenderLayer(Scene::RenderItems renderItems){
 
         constexpr uint16_t objCBByteSize =
@@ -887,6 +784,7 @@ namespace Acorn{
         }
 
     }
+
 
     void D3D12GraphicsManager::UpdateMainPassConstBuffer(){
         auto& camera = m_pScene->MainCamera;
@@ -952,25 +850,31 @@ namespace Acorn{
 
     void D3D12GraphicsManager::UpdateObjectConstBuffer(){
         const auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
+        const auto& item = m_pScene->Instances;
+
         auto ObjectCB = currFrameResource->ObjectCB.get();
 
-        for(auto& item : m_pScene->AllRenderItems){
+        XMMATRIX view = XMLoadFloat4x4(&m_pScene->MainCamera.GetViewMatrix());
+        XMMATRIX invView = XMMatrixInverse(nullptr, view);
 
-            if(item->DirtyCount > 0){
-                XMMATRIX world = XMMatrixTranspose(XMLoadFloat4x4(&item->World));
-                XMMATRIX worldIT = XMMatrixInverse(nullptr, world);
+        BoundingFrustum localFrustum;
+        item->VisibleInstanceCount = 0;
 
-                ObjectConstant objConstant;
-                XMStoreFloat4x4(&objConstant.World, world);
-                XMStoreFloat4x4(&objConstant.WorldIT, XMMatrixTranspose(worldIT));
+        for(uint32_t index = 0; index < item->InstanceDataArray.size(); index++){
 
-                ObjectCB->CopyData(item->ObjCBIndex, objConstant);
+            XMMATRIX World = XMLoadFloat4x4(&item->InstanceDataArray[index].World);
+            World = XMMatrixTranspose(World);
+            XMMATRIX invWorld = XMMatrixInverse(nullptr, World);
 
-                item->DirtyCount--;
+            XMMATRIX ViewToLocal = XMMatrixMultiply(invView, invWorld);
+
+            m_pScene->MainCamera.GetFrustum().Transform(localFrustum, ViewToLocal);
+            if(localFrustum.Contains(item->SubMesh->BBox) != DISJOINT){
+                ObjectCB->CopyData(item->VisibleInstanceCount++, item->InstanceDataArray[index]);
             }
+
         }
-
-
+            
     }
 
     void D3D12GraphicsManager::UpdateMaterialConstBuffer(){
@@ -981,11 +885,12 @@ namespace Acorn{
 
             if(mat.second->NumFramesDirty > 0){
 
-                MaterialConstant matCB;
+                MaterialData matCB;
                 matCB.DiffuseAlbedo = mat.second->DiffuseAlbedo;
                 matCB.MatTransform  = mat.second->MatTransform;
                 matCB.FresnelR0 = mat.second->FresnelR0;
                 matCB.Roughness = mat.second->Roughness;
+                matCB.DiffuseMapIndex = mat.second->DiffuseSrvHeapIndex;
 
                 MaterialCB->CopyData(mat.second->MatCBIndex, matCB);
                 mat.second->NumFramesDirty--;

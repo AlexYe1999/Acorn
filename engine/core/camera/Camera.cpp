@@ -6,7 +6,7 @@ namespace Acorn{
         : 
         m_bIsViewDirty(true),
         m_fNearZ(1.0f), m_fFarZ(1000.0f),
-        m_fAspect(1.0f), m_fFov(0.25f * 3.1415926535f),
+        m_fAspect(1.0f), m_fFov(0.5f * 3.1415926535f),
         m_fNearWindowHeight(0.0f),
         m_fFarWindowHeight(0.0f),
         m_vUp(0.0f, 1.0f, 0.0f),
@@ -14,7 +14,7 @@ namespace Acorn{
         m_vLookAt(0.0f, 0.0f, 1.0f),
         m_vPosition(0.0f, 0.0f, 0.0f)
     {
-        SetLens(1.0f, 1000.0f, 1.0f, 0.25f * 3.1415926535f);
+        SetLens(m_fNearZ, m_fFarZ, m_fAspect, m_fFov);
     }
 
     void Camera::SetLens(
@@ -29,7 +29,10 @@ namespace Acorn{
         m_fNearWindowHeight = 2.0f * m_fNearZ * tanf(0.5f * m_fFov);
         m_fFarWindowHeight = 2.0f * m_fFarZ * tanf(0.5f * m_fFov);
 
-        m_mProjMatrix = XMMatrixPerspectiveFovLH(m_fFov, m_fAspect, m_fNearZ, m_fFarZ);
+        XMMATRIX proj = XMMatrixPerspectiveFovLH(m_fFov, m_fAspect, m_fNearZ, m_fFarZ);
+        m_mProjMatrix = proj;
+
+        BoundingFrustum::CreateFromMatrix(m_Frustum, proj);
     }
 
     void Camera::Walk(Vector3f direction, const float length){

@@ -20,4 +20,13 @@ namespace Acorn{
         Acorn::Matrix4f MatTransform = {}; 
     };
 
+    struct MaterialData{
+        Acorn::Vector4f DiffuseAlbedo = {1.0f, 1.0f, 1.0f, 1.0f};
+        Acorn::Vector3f FresnelR0 = {0.01f, 0.01f, 0.01f};
+        float Roughness = 0.25f;
+        Acorn::Matrix4f MatTransform = {}; 
+        float DiffuseMapIndex = 0;
+        Acorn::Vector3f Pad;
+    };
+
 }

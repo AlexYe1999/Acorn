@@ -24,7 +24,7 @@ namespace Acorn{
         Vector4f FogColor;
         float FogStart;
         float FogRange;
-        Vector2f pad;
+        Vector2f Pad;
         PassConstant() = default;
     }; //size 6*16 + 4 + 4 + 4 = 108*4 = 432
 
@@ -33,7 +33,7 @@ namespace Acorn{
         Matrix4f WorldIT;
         Matrix4f TexTransform;
         ObjectConstant() = default;
-    }; // size 16*4 = 64
+    }; // size 16*3 = 54
 
     struct MaterialConstant{
         Vector4f DiffuseAlbedo = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -41,4 +41,7 @@ namespace Acorn{
         float Roughness = 0.25f;
         Matrix4f MatTransform = {}; 
     }; // size 4 + 4 + 16 = 24 * 4 = 96
+
+
+
 }

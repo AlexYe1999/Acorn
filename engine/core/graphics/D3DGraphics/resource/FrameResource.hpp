@@ -9,15 +9,14 @@
 namespace Acorn{
 
     template<
-        typename PassType, typename ObjectType,
-        typename MaterialType, typename VertexType>
+        typename PassType, typename ObjectType, typename MaterialType
+    >
     struct FrameResource{
         FrameResource::FrameResource(
             ID3D12Device* device,
             uint32_t passCount,
             uint32_t objectCount,
-            uint32_t materialCount = 0,
-            uint32_t VertexCount = 0
+            uint32_t materialCount
         ){
             device->CreateCommandAllocator(
                 D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -25,9 +24,8 @@ namespace Acorn{
             );
 
             PassCB = std::make_unique<UploadBuffer<PassType, true>>(device, passCount);
-            ObjectCB = std::make_unique<UploadBuffer<ObjectType, true>>(device, objectCount);
-            MaterialCB = std::make_unique<UploadBuffer<MaterialType, true>>(device, materialCount);
-            DynamicVB = std::make_unique<UploadBuffer<VertexType, false>>(device, VertexCount);
+            ObjectCB = std::make_unique<UploadBuffer<ObjectType, false>>(device, objectCount);
+            MaterialCB = std::make_unique<UploadBuffer<MaterialType, false>>(device, materialCount);
         }
 
         FrameResource(const FrameResource &frame) = delete;
@@ -36,9 +34,8 @@ namespace Acorn{
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CmdListAlloc;
 
         std::unique_ptr<UploadBuffer<PassType, true>> PassCB = nullptr;
-        std::unique_ptr<UploadBuffer<ObjectType, true>> ObjectCB = nullptr;
-        std::unique_ptr<UploadBuffer<MaterialType, true>> MaterialCB = nullptr;
-        std::unique_ptr<UploadBuffer<Vertex, false>> DynamicVB = nullptr;
+        std::unique_ptr<UploadBuffer<ObjectType, false>> ObjectCB = nullptr;
+        std::unique_ptr<UploadBuffer<MaterialType, false>> MaterialCB = nullptr;
 
         uint64_t Fence = 0;
     };
