@@ -13,6 +13,11 @@ struct Material{
 	float  Shininess;
 };
 
+struct CubeView {
+	float4x4 View;
+	float4x4 InvView;
+};
+
 cbuffer PassCB : register(b0) {
 	float4x4 View;
 	float4x4 InvView;

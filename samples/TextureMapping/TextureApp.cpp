@@ -124,14 +124,28 @@ void TextureApp::CreateTexture(){
     crateTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/WireFence.dds";
     crateTex->Name = "CrateTexture";
 
+    auto iceTex = std::make_unique<Acorn::Texture>();
+    iceTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/ice.dds";
+    iceTex->Name = "IceTexture";
+
     auto treeTex = std::make_unique<Acorn::Texture>();
     treeTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/treeArray2.dds";
     treeTex->Name = "TreeTexture";
 
+    auto cubeTex = std::make_unique<Acorn::Texture>();
+    cubeTex->FileName = L"E:/Code/Acorn/samples/TextureMapping/texture/cube1.dds";
+    cubeTex->Name = "CubeMapTexture";
+
+    auto rtTex = std::make_unique<Acorn::Texture>();
+    rtTex->FileName = L"";
+    rtTex->Name = "CubeMapRefTexture";
     m_pScene->Textures[grassTex->Name] = std::move(grassTex);
     m_pScene->Textures[waveTex->Name] = std::move(waveTex);
     m_pScene->Textures[crateTex->Name] = std::move(crateTex);
+    m_pScene->Textures[iceTex->Name] = std::move(iceTex);
     m_pScene->Textures[treeTex->Name] = std::move(treeTex);
+    m_pScene->Textures[cubeTex->Name] = std::move(cubeTex);
+    m_pScene->Textures[rtTex->Name] = std::move(rtTex);
 }
 
 void TextureApp::CreateMaterial(){
@@ -161,18 +175,45 @@ void TextureApp::CreateMaterial(){
 	crate->Roughness = 0.2f;
     crate->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
+    auto ice = std::make_unique<Acorn::Material>("ice");
+	ice->MatCBIndex = 3;
+	ice->DiffuseSrvHeapIndex = 3;
+	ice->DiffuseAlbedo = Acorn::Vector4f(0.5f, 0.5f, 0.5f, 1.0f);
+	ice->FresnelR0 = Acorn::Vector3f(0.6f, 0.6f, 0.6f);
+	ice->Roughness = 0.2f;
+    ice->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
     auto tree = std::make_unique<Acorn::Material>("tree");
-	tree->MatCBIndex = 3;
-	tree->DiffuseSrvHeapIndex = 3;
+	tree->MatCBIndex = 4;
+	tree->DiffuseSrvHeapIndex = 4;
 	tree->DiffuseAlbedo = Acorn::Vector4f(0.2f, 0.6f, 0.2f, 1.0f);
 	tree->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
 	tree->Roughness = 0.2f;
     tree->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
 
+    auto sky = std::make_unique<Acorn::Material>("sky");
+	sky->MatCBIndex = 5;
+	sky->DiffuseSrvHeapIndex = 5;
+	sky->DiffuseAlbedo = Acorn::Vector4f(0.8f, 0.8f, 0.8f, 1.0f);
+	sky->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
+	sky->Roughness = 0.5f;
+    sky->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
+    auto ref = std::make_unique<Acorn::Material>("ref");
+	ref->MatCBIndex = 6;
+	ref->DiffuseSrvHeapIndex = 6;
+	ref->DiffuseAlbedo = Acorn::Vector4f(0.8f, 0.8f, 0.8f, 1.0f);
+	ref->FresnelR0 = Acorn::Vector3f(0.01f, 0.01f, 0.01f);
+	ref->Roughness = 0.5f;
+    ref->NumFramesDirty = g_GraphicsConfig.FrameResourceCount;
+
     m_pScene->Materials[grass->Name] = std::move(grass);
     m_pScene->Materials[water->Name] = std::move(water);
     m_pScene->Materials[crate->Name] = std::move(crate);
-    m_pScene->Materials[tree->Name] = std::move(tree);
+    m_pScene->Materials[ice->Name]   = std::move(ice);
+    m_pScene->Materials[tree->Name]  = std::move(tree);
+    m_pScene->Materials[sky->Name]   = std::move(sky);
+    m_pScene->Materials[ref->Name]   = std::move(ref);
 }
 
 void TextureApp::CreateMesh(){
@@ -213,6 +254,68 @@ void TextureApp::CreateMesh(){
 
     box->SubMesh["Box"] = std::move(boxSubMesh);
     m_pScene->Meshes[box->Name] = std::move(box);
+
+    // Mesh of sky box and sphere mirror
+    GeoGenerator::MeshData skyBoxGeo = geoGen.CreateSphere(1.0f, 20.0f, 20.0f);
+    GeoGenerator::MeshData sphereMirrorGeo = geoGen.CreateSphere(20.0f, 40.0f, 40.0f);
+
+    std::unique_ptr<Acorn::Mesh> shpere = std::make_unique<Acorn::Mesh>("SphereGeo");
+    std::vector<Acorn::Vertex> sphereVertices;
+    std::vector<uint16_t> sphereIndices;
+
+    Acorn::SubMesh skySubMesh;
+    skySubMesh.StartVertexLocation = 0;
+    skySubMesh.StartIndexLocation = 0;
+    skySubMesh.IndexCount = skyBoxGeo.indices.size();
+    shpere->SubMesh["Sky"] = std::move(skySubMesh);
+
+    for(const auto& vertex : skyBoxGeo.vertices){
+        sphereVertices.push_back(Acorn::Vertex(
+            vertex.position,
+            vertex.normal,
+            vertex.uv
+        ));
+    }
+
+    sphereIndices.insert(
+        sphereIndices.end(), 
+        skyBoxGeo.indices.begin(), skyBoxGeo.indices.end()
+    );
+
+    Acorn::SubMesh sphereMirrorSubMesh;
+    sphereMirrorSubMesh.StartVertexLocation = sphereVertices.size();
+    sphereMirrorSubMesh.StartIndexLocation = sphereIndices.size();
+    sphereMirrorSubMesh.IndexCount = sphereMirrorGeo.indices.size();
+    shpere->SubMesh["SphereMirror"] = std::move(sphereMirrorSubMesh);
+
+    for(const auto& vertex : sphereMirrorGeo.vertices){
+        sphereVertices.push_back(Acorn::Vertex(
+            vertex.position,
+            vertex.normal,
+            vertex.uv
+        ));
+    }
+
+    sphereIndices.insert(
+        sphereIndices.end(), 
+        sphereMirrorGeo.indices.begin(), sphereMirrorGeo.indices.end()
+    );
+
+    const uint32_t sphereVbByteSize = sphereVertices.size() * sizeof(Acorn::Vertex);
+    const uint32_t sphereIbByteSize = sphereIndices.size() * sizeof(uint16_t);
+
+    D3DCreateBlob(sphereVbByteSize, shpere->VertexBufferCPU.GetAddressOf());
+    D3DCreateBlob(sphereIbByteSize, shpere->IndexBufferCPU.GetAddressOf());
+
+    CopyMemory(shpere->VertexBufferCPU->GetBufferPointer(), sphereVertices.data(), sphereVbByteSize);
+    CopyMemory(shpere->IndexBufferCPU->GetBufferPointer(), sphereIndices.data(), sphereIbByteSize);
+
+    shpere->VertexByteStride = sizeof(Acorn::Vertex);
+    shpere->IndexFormat = DXGI_FORMAT_R16_UINT;
+    shpere->VertexBufferByteSize = sphereVbByteSize;
+    shpere->IndexBufferByteSize = sphereIbByteSize;
+
+    m_pScene->Meshes[shpere->Name] = std::move(shpere);
 
     // Mesh of land
     std::vector<Acorn::Vertex> landVertices = {
@@ -298,11 +401,11 @@ void TextureApp::CreateMesh(){
     // Mesh of tree
     std::unique_ptr<Acorn::Mesh> tree = std::make_unique<Acorn::Mesh>("TreeGeo");
     std::vector<Acorn::TreeSpriteVertex> treeVertices = {
-        Acorn::TreeSpriteVertex(10.0f, 28.0f, 20.0f, 20.0f, 50.0f),
-        Acorn::TreeSpriteVertex(-10.0f, 20.0f, -20.0f, 20.0f, 50.0f),
-        Acorn::TreeSpriteVertex(-50.0f, 30.0f, -20.0f, 20.0f, 50.0f),
-        Acorn::TreeSpriteVertex(-60.0f, 25.0f, -20.0f, 20.0f, 20.0f),
-        Acorn::TreeSpriteVertex(-80.0f, 40.0f, -20.0f, 35.0f, 30.0f)
+        Acorn::TreeSpriteVertex(20.0f, 28.0f, 20.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-20.0f, 20.0f, -20.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-50.0f, 30.0f, -50.0f, 20.0f, 50.0f),
+        Acorn::TreeSpriteVertex(-60.0f, 25.0f, -68.0f, 20.0f, 20.0f),
+        Acorn::TreeSpriteVertex(-80.0f, 50.0f, -90.0f, 35.0f, 30.0f)
     };
     std::vector<uint16_t> treeIndices = {0, 1, 2, 3, 4};
 
@@ -347,6 +450,31 @@ void TextureApp::CreateRenderItem(){
     land->DirtyCount = g_GraphicsConfig.FrameResourceCount;
     m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Opaque)].push_back(std::move(land.get()));
     m_pScene->AllRenderItems.push_back(std::move(land));
+
+    auto sky = std::make_unique<Acorn::RenderItem>();
+    sky->Mesh = m_pScene->Meshes["SphereGeo"].get();
+    sky->Mat = m_pScene->Materials["sky"].get();
+    sky->ObjCBIndex = objIndex++;
+    sky->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    sky->IndexCount = sky->Mesh->SubMesh["Sky"].IndexCount;
+    sky->StartVertexLocation = sky->Mesh->SubMesh["Sky"].StartVertexLocation;
+    sky->StartIndexLocation = sky->Mesh->SubMesh["Sky"].StartIndexLocation;
+    sky->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Background)].push_back(std::move(sky.get()));
+    m_pScene->AllRenderItems.push_back(std::move(sky));
+
+    auto sphereMirror = std::make_unique<Acorn::RenderItem>();
+    sphereMirror->World = DirectX::XMMatrixTranslation(0.0f, 50.0f, 0.0f);
+    sphereMirror->Mesh = m_pScene->Meshes["SphereGeo"].get();
+    sphereMirror->Mat = m_pScene->Materials["ref"].get();
+    sphereMirror->ObjCBIndex = objIndex++;
+    sphereMirror->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    sphereMirror->IndexCount = sphereMirror->Mesh->SubMesh["SphereMirror"].IndexCount;
+    sphereMirror->StartVertexLocation = sphereMirror->Mesh->SubMesh["SphereMirror"].StartVertexLocation;
+    sphereMirror->StartIndexLocation = sphereMirror->Mesh->SubMesh["SphereMirror"].StartIndexLocation;
+    sphereMirror->DirtyCount = g_GraphicsConfig.FrameResourceCount;
+    m_pScene->RenderLayers[static_cast<uint16_t>(Acorn::RenderLayer::Mirrors)].push_back(std::move(sphereMirror.get()));
+    m_pScene->AllRenderItems.push_back(std::move(sphereMirror));
 
     auto box = std::make_unique<Acorn::RenderItem>();
     box->World = DirectX::XMMatrixScaling(15.0f, 15.0f, 15.0f);
@@ -508,7 +636,7 @@ LRESULT TextureApp::MsgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             m_Mouse.KeyUp(2);
             break;
         }
-        case WM_MOUSEMOVE:{
+        case WM_MOUSEMOVE:{        
             Acorn::Point2<int16_t> p;
             p.x = GET_X_LPARAM(lParam);
             p.y = GET_Y_LPARAM(lParam);

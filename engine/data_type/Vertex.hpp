@@ -36,6 +36,24 @@ namespace Acorn{
             Normal(nx, ny, nz),
             TexC(u, v)
         {}
+        Vertex(
+            const Vector3f& position, 
+            const Vector3f& normal,
+            const Vector2f& TexC
+        ) :
+            Position(position),
+            Normal(normal),
+            TexC(TexC)
+        {}
+        Vertex(
+            const XMFLOAT3& position, 
+            const XMFLOAT3& normal,
+            const XMFLOAT2& TexC
+        ) :
+            Position(position),
+            Normal(normal),
+            TexC(TexC)
+        {}
         Vector3f Position;
         Vector3f Normal;
         Vector2f TexC;

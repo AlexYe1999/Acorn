@@ -10,6 +10,8 @@ set(Geometry
     Scene.cpp
     RenderItem.hpp
     RenderItem.cpp
+    CubeRenderTarget.h
+    CubeRenderTarget.cpp
     GeometryGenerator.hpp
     GeometryGenerator.cpp    
 )

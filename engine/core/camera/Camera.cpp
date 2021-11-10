@@ -14,7 +14,7 @@ namespace Acorn{
         m_vLookAt(0.0f, 0.0f, 1.0f),
         m_vPosition(0.0f, 0.0f, 0.0f)
     {
-        SetLens(1.0f, 1000.0f, 1.0f, 0.25f * 3.1415926535f);
+        SetLens(1.0f, 1000.0f, 1.0f, XMConvertToRadians(60));
     }
 
     void Camera::SetLens(

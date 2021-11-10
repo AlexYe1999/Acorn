@@ -14,6 +14,7 @@ namespace Acorn{
         Transparent,
         Shadow,
         Sprite,
+        Background,
         LayerCount
     };
 

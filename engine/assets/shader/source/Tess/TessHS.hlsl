@@ -11,7 +11,7 @@ PatchTess ConstantHS(
     
 	float d = distance(centerW, EyePosW);
 	float d0 = 20;
-	float d1 = 500;
+	float d1 = 700;
 	float tess = 64.0f * saturate((d1-d) / (d1-d0));
     
     PatchTess pt;

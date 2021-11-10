@@ -41,4 +41,5 @@ namespace Acorn{
         float Roughness = 0.25f;
         Matrix4f MatTransform = {}; 
     }; // size 4 + 4 + 16 = 24 * 4 = 96
+
 }

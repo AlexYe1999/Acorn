@@ -6,6 +6,7 @@ namespace Acorn{
 
     struct Vector2f : DirectX::XMFLOAT2{
         Vector2f() = default;
+        Vector2f(const XMFLOAT2& vec) : XMFLOAT2(vec) {}
         Vector2f(const float x) : XMFLOAT2(x, x) {}
         Vector2f(const float x, const float y) : XMFLOAT2(x, y) {}
 

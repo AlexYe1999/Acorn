@@ -26,10 +26,6 @@ namespace Acorn{
         
         m_pD3D12GraphicsCommandList->Reset(m_pD3D12CommandAllocator.Get(), nullptr);
 
-        for(int i = 0; i < g_GraphicsConfig.BackBufferCount; ++i)
-            m_pRtBuffer[i].Reset();
-        m_pDsBuffer.Reset();
-
         m_pDXGISwapChain->ResizeBuffers(
             g_GraphicsConfig.BackBufferCount,
             g_GraphicsConfig.WndWidth, g_GraphicsConfig.WndHeight,
@@ -97,17 +93,17 @@ namespace Acorn{
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE, &depthStencilDesc, 
             D3D12_RESOURCE_STATE_COMMON, &optClear,
-            IID_PPV_ARGS(m_pDsBuffer.GetAddressOf())
+            IID_PPV_ARGS(m_pDsBuffer[0].GetAddressOf())
         );
 
         m_pD3D12Device->CreateDepthStencilView(
-            m_pDsBuffer.Get(), nullptr, DepthStencilView()
+            m_pDsBuffer[0].Get(), nullptr, DepthStencilView()
         );
 
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, 
             &CD3DX12_RESOURCE_BARRIER::Transition(
-            m_pDsBuffer.Get(),
+            m_pDsBuffer[0].Get(),
             D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE
         ));
 
@@ -188,13 +184,85 @@ namespace Acorn{
         auto& currFrameResource = m_pFrameResource[m_uCurrFrameResourceIndex];
 
         currFrameResource->CmdListAlloc->Reset();
+        
         m_pD3D12GraphicsCommandList->Reset(
             currFrameResource->CmdListAlloc.Get(), m_pPSOs["Default"].Get()
+        );
+
+        //Render CubeMap
+        static D3D12_VIEWPORT ViewPort = {};
+        ViewPort.Height = 100;
+        ViewPort.Width = 100;
+        ViewPort.MaxDepth = 1.0f;
+        ViewPort.MinDepth = 0.0f;
+        ViewPort.TopLeftX = 0.0f;
+        ViewPort.TopLeftY = 0.0f;
+        static tagRECT ScissorRect = {};
+        ScissorRect.left = 0;
+        ScissorRect.top = 0;
+        ScissorRect.right = 100;
+        ScissorRect.bottom = 100;
+
+        m_pD3D12GraphicsCommandList->RSSetViewports(1, &ViewPort);
+        m_pD3D12GraphicsCommandList->RSSetScissorRects(1, &ScissorRect);
+
+        m_pD3D12GraphicsCommandList->ResourceBarrier(
+            1, &CD3DX12_RESOURCE_BARRIER::Transition(
+                m_pRtBuffer[g_GraphicsConfig.BackBufferCount].Get(), 
+                D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET)
+        );
+
+        m_pD3D12GraphicsCommandList->ClearRenderTargetView(
+            LastBufferView(), (float*)&m_MainPassCB.FogColor, 0, nullptr
+        );
+
+        m_pD3D12GraphicsCommandList->ClearDepthStencilView(
+            LastDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            1.0f, 0, 0, nullptr
+        );
+        
+        m_pD3D12GraphicsCommandList->OMSetRenderTargets(
+            1, &LastBufferView(), true, &LastDepthStencilView()
+        );
+
+        m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignatures["Shading"].Get());
+
+        ID3D12DescriptorHeap *descriptorHeap[] = {m_pSrvHeap.Get()};
+        m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
+
+        auto& PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB;
+        m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
+            0, PassCB->Resource()->GetGPUVirtualAddress()
+        );
+
+        m_pD3D12GraphicsCommandList->SetGraphicsRootShaderResourceView(
+            4, m_pCubeMapBuffer->Resource()->GetGPUVirtualAddress()
+        );
+
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["CDefault"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Opaque)]); 
+
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["CSprite"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Sprite)]);
+
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["CCubeMap"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Background)]);
+
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["CTransparent"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Transparent)]);
+
+
+        m_pD3D12GraphicsCommandList->ResourceBarrier(
+            1, &CD3DX12_RESOURCE_BARRIER::Transition(
+                m_pRtBuffer[g_GraphicsConfig.BackBufferCount].Get(), 
+                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ)
         );
 
         m_pD3D12GraphicsCommandList->RSSetViewports(1, &g_GraphicsConfig.ViewPort);
         m_pD3D12GraphicsCommandList->RSSetScissorRects(1, &g_GraphicsConfig.ScissorRect);
 
+
+        // Render Scene
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, &CD3DX12_RESOURCE_BARRIER::Transition(
                 m_pRtBuffer[m_uCurrentBackBufferIndex].Get(), 
@@ -214,23 +282,21 @@ namespace Acorn{
             1, &CurrentBackBufferView(), true, &DepthStencilView()
         );
 
-        m_pD3D12GraphicsCommandList->SetGraphicsRootSignature(m_pRootSignatures["Shading"].Get());
-
-        ID3D12DescriptorHeap *descriptorHeap[] = {m_pSrvHeap.Get()};
-        m_pD3D12GraphicsCommandList->SetDescriptorHeaps(1, descriptorHeap);
-
-        auto& PassCB = m_pFrameResource[m_uCurrFrameResourceIndex]->PassCB;
-        m_pD3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(
-            0, PassCB->Resource()->GetGPUVirtualAddress()
-        );
-
         // Draw calls
-
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Default"].Get());
         DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Opaque)]); 
 
         // Draw Sprite with GS
         m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Sprite"].Get());
         DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Sprite)]);
+
+        // Draw Mirror
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Mirror"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Mirrors)]);
+
+        // Draw Sky Box
+        m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["CubeMap"].Get());
+        DrawRenderLayer(m_pScene->RenderLayers[static_cast<uint16_t>(RenderLayer::Background)]);
 
         // Draw transparent object 
         m_pD3D12GraphicsCommandList->SetPipelineState(m_pPSOs["Transparent"].Get());
@@ -244,7 +310,6 @@ namespace Acorn{
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT
             )
         );
-
 
         m_pD3D12GraphicsCommandList->Close();
 
@@ -279,7 +344,7 @@ namespace Acorn{
 
         for(auto& p : m_pScene->Textures){
             auto& texture = p.second;
-            HRESULT hr = CreateDDSTextureFromFile12(
+            if(p.first != "CubeMapRefTexture") CreateDDSTextureFromFile12(
                 m_pD3D12Device.Get(), m_pD3D12GraphicsCommandList.Get(),
                 texture->FileName.c_str(), texture->Resource, texture->UploadHeap
             );
@@ -289,8 +354,7 @@ namespace Acorn{
         srvHeapDesc.NumDescriptors = m_pScene->Materials.size();
         srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        srvHeapDesc.NodeMask = 
-        m_pD3D12Device->CreateDescriptorHeap(
+        srvHeapDesc.NodeMask = m_pD3D12Device->CreateDescriptorHeap(
             &srvHeapDesc, IID_PPV_ARGS(m_pSrvHeap.GetAddressOf())
         );
 
@@ -326,6 +390,13 @@ namespace Acorn{
         );
 
         hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["IceTexture"]->Resource->GetDesc().Format;
+        srvDesc.Texture2D.MipLevels = textures["IceTexture"]->Resource->GetDesc().MipLevels;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["IceTexture"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
         srvDesc.Format = textures["TreeTexture"]->Resource->GetDesc().Format;
         srvDesc.Texture2DArray.MostDetailedMip = 0;
@@ -335,6 +406,25 @@ namespace Acorn{
         m_pD3D12Device->CreateShaderResourceView(
             textures["TreeTexture"]->Resource.Get(), &srvDesc, hDescriptor
         );
+
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = textures["CubeMapTexture"]->Resource->GetDesc().Format;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+        srvDesc.TextureCube.MostDetailedMip = 0;
+        srvDesc.TextureCube.MipLevels = 1;
+        srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+        m_pD3D12Device->CreateShaderResourceView(
+            textures["CubeMapTexture"]->Resource.Get(), &srvDesc, hDescriptor
+        );
+
+        textures["CubeMapRefTexture"]->Resource = m_pDsBuffer[1];
+        srvDesc.Format = textures["CubeMapRefTexture"]->Resource->GetDesc().Format;
+        hDescriptor.Offset(1, m_uCbvSrvUavDescriptorSize);
+        srvDesc.Format = g_GraphicsConfig.BackBufferFormat;
+        m_pD3D12Device->CreateShaderResourceView(
+            m_pRtBuffer[g_GraphicsConfig.BackBufferCount].Get(), &srvDesc, hDescriptor
+        );
+
 
     }
 
@@ -383,7 +473,27 @@ namespace Acorn{
         m_pShaderByteCode["TessHS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessHS.cso");
         m_pShaderByteCode["TessDS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessDS.cso");
         m_pShaderByteCode["TessPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\TessPS.cso");
-
+        m_pShaderByteCode["CubeMapVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CubeMapVS.cso");
+        m_pShaderByteCode["CubeMapPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CubeMapPS.cso");
+        m_pShaderByteCode["MirrorVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\MirrorVS.cso");
+        m_pShaderByteCode["MirrorPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\MirrorPS.cso");
+    
+        m_pShaderByteCode["CDefaultVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CVS.cso");
+        m_pShaderByteCode["CDefaultGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CGS.cso");
+        m_pShaderByteCode["CDefaultPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CPS.cso");
+        m_pShaderByteCode["CTransparentPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTransparentPS.cso");
+        m_pShaderByteCode["CSpriteVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CSpriteVS.cso");
+        m_pShaderByteCode["CSpriteGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CSpriteGS.cso");
+        m_pShaderByteCode["CSpritePS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CSpritePS.cso");
+        m_pShaderByteCode["CTessVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTessVS.cso");
+        m_pShaderByteCode["CTessHS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTessHS.cso");
+        m_pShaderByteCode["CTessDS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTessDS.cso");
+        m_pShaderByteCode["CTessGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTessGS.cso");
+        m_pShaderByteCode["CTessPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CTessPS.cso");
+        m_pShaderByteCode["CCubeMapVS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CCubeMapVS.cso");
+        m_pShaderByteCode["CCubeMapGS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CCubeMapGS.cso");
+        m_pShaderByteCode["CCubeMapPS"] = D3DUtil::LoadBinaryShader("E:\\Code\\Acorn\\build\\engine\\core\\graphics\\Debug\\CCubeMapPS.cso");
+    
     }
     
     void D3D12GraphicsManager::ClearShaders(){
@@ -457,6 +567,38 @@ namespace Acorn{
             m_pD3D12Device->CreateConstantBufferView(&cbvDesc, handle);
 
             handle.Offset(1, m_uCbvSrvUavDescriptorSize);
+        }
+
+        static Vector3f LookAt[6] = {
+            {+1.0f, 50.0f, 0.0f},
+            {-1.0f, 50.0f, 0.0f},
+            {0.0f, +51.0f, 0.0f},
+            {0.0f, -51.0f, 0.0f},
+            {0.0f, 50.0f, +1.0f},
+            {0.0f, 50.0f, -1.0f}
+        };
+
+        Camera CubeCamera;
+        CubeCamera.SetLens(1.0f, 1000.0f, 1.0f, XMConvertToRadians(90));
+
+        m_pCubeMapBuffer = std::make_unique<UploadBuffer<Matrix4f, false>>(m_pD3D12Device.Get(), 6);
+        
+        for(uint16_t index = 0; index < 6; index++){
+            if(index == 2){
+                CubeCamera.LookAt(Vector3f(0.0f, 50.0f, 0.0f), LookAt[index], {0.0f, 0.0f, -1.0f});
+            }
+            else if(index == 3){
+                CubeCamera.LookAt(Vector3f(0.0f, 50.0f, 0.0f), LookAt[index], {0.0f, 0.0f, +1.0f});
+            }
+            else{
+                CubeCamera.LookAt(Vector3f(0.0f, 50.0f, 0.0f), LookAt[index], {0.0f, +1.0f, 0.0f});
+            }
+
+            XMMATRIX view = XMLoadFloat4x4(&CubeCamera.GetViewMatrix());
+            XMMATRIX proj = XMLoadFloat4x4(&CubeCamera.GetProjMatrix());
+            m_pCubeMapBuffer->CopyData(
+                index, XMMatrixTranspose(view*proj)
+            );
         }
 
     }
@@ -568,19 +710,30 @@ namespace Acorn{
 
     void D3D12GraphicsManager::BuildRtAndDs(){
 
+        // Create RT Heap and DS Heap
         D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
         rtvHeapDesc.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
         rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.BackBufferCount;
+        rtvHeapDesc.NumDescriptors = g_GraphicsConfig.BackBufferCount + 1;
         rtvHeapDesc.NodeMask = 0;
 
         m_pD3D12Device->CreateDescriptorHeap(
             &rtvHeapDesc, IID_PPV_ARGS(m_pRtvHeap.GetAddressOf())
         );
 
-        //TODO: Use MemoryManager to alloc Memory
+        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
+        dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        dsvHeapDesc.NumDescriptors = 2;
+        dsvHeapDesc.NodeMask = 0;
+
+        m_pD3D12Device->CreateDescriptorHeap(
+            &dsvHeapDesc, IID_PPV_ARGS(m_pDsvHeap.GetAddressOf())
+        );
+
+        // Create RT Resource
         m_pRtBuffer = 
-            std::make_unique<ComPtr<ID3D12Resource>[]>(g_GraphicsConfig.BackBufferCount);
+            std::make_unique<ComPtr<ID3D12Resource>[]>(g_GraphicsConfig.BackBufferCount+1);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart()
@@ -598,16 +751,51 @@ namespace Acorn{
             rtvHeapHandle.Offset(1, m_uRtvDescriptorSize);
         }
 
+        D3D12_RESOURCE_DESC texDesc;
+        ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
+        texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        texDesc.Alignment = 0;
+        texDesc.Width = 100;
+        texDesc.Height = 100;
+        texDesc.DepthOrArraySize = 6;
+        texDesc.MipLevels = 1;
+        texDesc.Format = g_GraphicsConfig.BackBufferFormat;
+        texDesc.SampleDesc.Count = 1;
+        texDesc.SampleDesc.Quality = 0;
+        texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-        dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        dsvHeapDesc.NumDescriptors = 1;
-        dsvHeapDesc.NodeMask = 0;
-
-        m_pD3D12Device->CreateDescriptorHeap(
-            &dsvHeapDesc, IID_PPV_ARGS(m_pDsvHeap.GetAddressOf())
+        m_pD3D12Device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAG_NONE,
+            &texDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(m_pRtBuffer[g_GraphicsConfig.BackBufferCount].GetAddressOf())
         );
+
+
+        // Reate RT View
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+        rtvDesc.Format = g_GraphicsConfig.BackBufferFormat;
+        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+        rtvDesc.Texture2DArray.ArraySize = 6;
+        rtvDesc.Texture2DArray.FirstArraySlice = 0;
+        rtvDesc.Texture2DArray.MipSlice = 0;
+        rtvDesc.Texture2DArray.PlaneSlice = 0;
+
+        m_pD3D12Device->CreateRenderTargetView(
+            m_pRtBuffer[g_GraphicsConfig.BackBufferCount].Get(), &rtvDesc, rtvHeapHandle
+        );
+
+        // Create DS Resource
+        m_pDsBuffer = 
+            std::make_unique<ComPtr<ID3D12Resource>[]>(2);
+
+        D3D12_CLEAR_VALUE optClear;
+        optClear.Format = g_GraphicsConfig.DepthStansilFormat;
+        optClear.DepthStencil.Depth   = 1.0f;
+        optClear.DepthStencil.Stencil = 0;
 
         D3D12_RESOURCE_DESC depthStencilDesc;
         depthStencilDesc.Width  = g_GraphicsConfig.WndWidth;
@@ -622,32 +810,72 @@ namespace Acorn{
         depthStencilDesc.SampleDesc.Count   = 1;
         depthStencilDesc.SampleDesc.Quality = 0;
 
-        D3D12_CLEAR_VALUE optClear;
-        optClear.Format = g_GraphicsConfig.DepthStansilFormat;
-        optClear.DepthStencil.Depth   = 1.0f;
-        optClear.DepthStencil.Stencil = 0;
         m_pD3D12Device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE, &depthStencilDesc, 
             D3D12_RESOURCE_STATE_COMMON, &optClear,
-            IID_PPV_ARGS(m_pDsBuffer.GetAddressOf())
+            IID_PPV_ARGS(m_pDsBuffer[0].GetAddressOf())
+        );
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle(
+            m_pDsvHeap->GetCPUDescriptorHandleForHeapStart()
         );
 
         m_pD3D12Device->CreateDepthStencilView(
-            m_pDsBuffer.Get(), nullptr, DepthStencilView()
+            m_pDsBuffer[0].Get(), nullptr, dsHandle
         );
 
         m_pD3D12GraphicsCommandList->ResourceBarrier(
             1, 
             &CD3DX12_RESOURCE_BARRIER::Transition(
-            m_pDsBuffer.Get(),
+            m_pDsBuffer[0].Get(),
+            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE
+        ));
+
+        D3D12_RESOURCE_DESC cubeStencilDesc;
+        cubeStencilDesc.Width  = 100;
+        cubeStencilDesc.Height = 100;
+        cubeStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        cubeStencilDesc.Alignment = 0;
+        cubeStencilDesc.MipLevels = 1;
+        cubeStencilDesc.DepthOrArraySize = 6;
+        cubeStencilDesc.Format = g_GraphicsConfig.DepthStansilFormat;
+        cubeStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        cubeStencilDesc.Flags  = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        cubeStencilDesc.SampleDesc.Count   = 1;
+        cubeStencilDesc.SampleDesc.Quality = 0;
+
+        m_pD3D12Device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAG_NONE, &cubeStencilDesc, 
+            D3D12_RESOURCE_STATE_COMMON, &optClear,
+            IID_PPV_ARGS(m_pDsBuffer[1].GetAddressOf())
+        );
+
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+        dsvDesc.Format = g_GraphicsConfig.DepthStansilFormat;
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+        dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+        dsvDesc.Texture2DArray.ArraySize = 6;
+        dsvDesc.Texture2DArray.FirstArraySlice = 0;
+        dsvDesc.Texture2DArray.MipSlice = 0;
+
+        dsHandle.Offset(1, m_uDsvDescriptorSize);
+        m_pD3D12Device->CreateDepthStencilView(
+            m_pDsBuffer[1].Get(), &dsvDesc, dsHandle
+        );
+
+        m_pD3D12GraphicsCommandList->ResourceBarrier(
+            1, 
+            &CD3DX12_RESOURCE_BARRIER::Transition(
+            m_pDsBuffer[1].Get(),
             D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE
         ));
 
     }
 
     void D3D12GraphicsManager::BuildRootSignature(){
-        CD3DX12_ROOT_PARAMETER slotRootParam[4];
+        CD3DX12_ROOT_PARAMETER slotRootParam[5];
         CD3DX12_DESCRIPTOR_RANGE cbvTable;
         cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
@@ -655,11 +883,12 @@ namespace Acorn{
         slotRootParam[1].InitAsConstantBufferView(1);
         slotRootParam[2].InitAsConstantBufferView(2);
         slotRootParam[3].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_PIXEL);
+        slotRootParam[4].InitAsShaderResourceView(0, 1);
 
         StaticSamplerArray staticSampler = GetStaticSamplers();
 
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
-            4, slotRootParam, GetStaticSamplers().size(), GetStaticSamplers().data(),
+            5, slotRootParam, GetStaticSamplers().size(), GetStaticSamplers().data(),
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
         );
 
@@ -695,8 +924,8 @@ namespace Acorn{
         rasterDesc.ForcedSampleCount = 0;
         rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC piplineStateDesc;
-        ZeroMemory(&piplineStateDesc, sizeof(piplineStateDesc));
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC piplineStateDesc = {};
+
         piplineStateDesc.InputLayout = {
             Vertex::Desc.data(),
             Vertex::Desc.size()
@@ -739,6 +968,29 @@ namespace Acorn{
         m_pD3D12Device->CreateGraphicsPipelineState(
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Default"].GetAddressOf())
         );
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["CTessVS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTessVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {
+            m_pShaderByteCode["CTessHS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTessHS"]->GetBufferSize()
+        };
+        piplineStateDesc.DS = {
+            m_pShaderByteCode["CTessDS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTessDS"]->GetBufferSize()
+        };
+        piplineStateDesc.GS = {
+            m_pShaderByteCode["CTessGS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTessGS"]->GetBufferSize()
+        };
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["CTessPS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTessPS"]->GetBufferSize()
+        };
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["CDefault"].GetAddressOf())
+        );
 
         // PSO for Transparent object
         D3D12_BLEND_DESC blendDesc = {};
@@ -763,12 +1015,31 @@ namespace Acorn{
         };
         piplineStateDesc.HS = {};
         piplineStateDesc.DS = {};
+        piplineStateDesc.GS = {};
         piplineStateDesc.PS = {
             m_pShaderByteCode["TransparentPS"]->GetBufferPointer(),
             m_pShaderByteCode["TransparentPS"]->GetBufferSize()
         };
         m_pD3D12Device->CreateGraphicsPipelineState(
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Transparent"].GetAddressOf())
+        );
+
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["CDefaultVS"]->GetBufferPointer(),
+            m_pShaderByteCode["CDefaultVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
+        piplineStateDesc.GS = {
+            m_pShaderByteCode["CDefaultGS"]->GetBufferPointer(),
+            m_pShaderByteCode["CDefaultGS"]->GetBufferSize()
+        };
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["CTransparentPS"]->GetBufferPointer(),
+            m_pShaderByteCode["CTransparentPS"]->GetBufferSize()
+        };
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["CTransparent"].GetAddressOf())
         );
 
         // PSO for sprite
@@ -789,10 +1060,93 @@ namespace Acorn{
             m_pShaderByteCode["SpritePS"]->GetBufferPointer(),
             m_pShaderByteCode["SpritePS"]->GetBufferSize()
         };
+
         m_pD3D12Device->CreateGraphicsPipelineState(
             &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Sprite"].GetAddressOf())
         );
 
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["CSpriteVS"]->GetBufferPointer(),
+            m_pShaderByteCode["CSpriteVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
+        piplineStateDesc.GS = {
+            m_pShaderByteCode["CSpriteGS"]->GetBufferPointer(),
+            m_pShaderByteCode["CSpriteGS"]->GetBufferSize()
+        };
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["CSpritePS"]->GetBufferPointer(),
+            m_pShaderByteCode["CSpritePS"]->GetBufferSize()
+        };
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["CSprite"].GetAddressOf())
+        );
+
+        // PSO for CubeMap
+        piplineStateDesc.InputLayout = {
+            Vertex::Desc.data(),
+            Vertex::Desc.size()
+        };
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["CubeMapVS"]->GetBufferPointer(),
+            m_pShaderByteCode["CubeMapVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["CubeMapPS"]->GetBufferPointer(),
+            m_pShaderByteCode["CubeMapPS"]->GetBufferSize()
+        };
+        piplineStateDesc.GS = {};
+        piplineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        piplineStateDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        piplineStateDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        piplineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        piplineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["CubeMap"].GetAddressOf())
+        );
+
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["CCubeMapVS"]->GetBufferPointer(),
+            m_pShaderByteCode["CCubeMapVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
+        piplineStateDesc.GS = {
+            m_pShaderByteCode["CCubeMapGS"]->GetBufferPointer(),
+            m_pShaderByteCode["CCubeMapGS"]->GetBufferSize()
+        };
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["CCubeMapPS"]->GetBufferPointer(),
+            m_pShaderByteCode["CCubeMapPS"]->GetBufferSize()
+        };
+
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["CCubeMap"].GetAddressOf())
+        );
+
+        // PSO for Mirror 
+
+        piplineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+        piplineStateDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        piplineStateDesc.VS = {
+            m_pShaderByteCode["MirrorVS"]->GetBufferPointer(),
+            m_pShaderByteCode["MirrorVS"]->GetBufferSize()
+        };
+        piplineStateDesc.HS = {};
+        piplineStateDesc.DS = {};
+        piplineStateDesc.GS = {};
+        piplineStateDesc.PS = {
+            m_pShaderByteCode["MirrorPS"]->GetBufferPointer(),
+            m_pShaderByteCode["MirrorPS"]->GetBufferSize()
+        };
+
+        m_pD3D12Device->CreateGraphicsPipelineState(
+            &piplineStateDesc, IID_PPV_ARGS(m_pPSOs["Mirror"].GetAddressOf())
+        );
     }
 
     StaticSamplerArray D3D12GraphicsManager::GetStaticSamplers(){
@@ -915,10 +1269,10 @@ namespace Acorn{
         m_MainPassCB.FarZ = 1000.0f;
         m_MainPassCB.TotalTime = m_pTimer->TotalTime();
         m_MainPassCB.DeltaTime = m_pTimer->DeltaTime();
-        m_MainPassCB.AmbientLight = {0.05f, 0.05f, 0.05f, 1.0f};
+        m_MainPassCB.AmbientLight = {0.25f, 0.25f, 0.25f, 1.0f};
 
 
-        m_MainPassCB.Lights[0].Strength = Vector3f(0.4f, 0.4f, 0.4f);
+        m_MainPassCB.Lights[0].Strength = Vector3f(0.6f, 0.6f, 0.6f);
         m_MainPassCB.Lights[0].Position = Vector3f(40.0f, 20.0f, 20.0f);
 
         m_MainPassCB.Lights[1].Position = Vector3f(
@@ -926,7 +1280,7 @@ namespace Acorn{
             105.0f * sinf(m_pTimer->TotalTime() / 10.0f),
             0.0f
         );
-        m_MainPassCB.Lights[1].Strength = Vector3f(0.5f, 0.5f, 0.5f);
+        m_MainPassCB.Lights[1].Strength = Vector3f(0.6f, 0.6f, 0.6f);
         m_MainPassCB.Lights[1].FalloffStart = 1.0f;
         m_MainPassCB.Lights[1].FalloffEnd = 200.0f;
 
@@ -941,7 +1295,7 @@ namespace Acorn{
         m_MainPassCB.Lights[2].FalloffEnd = 200.0f;
         m_MainPassCB.Lights[2].SpotPower = 32.0f;
 
-        m_MainPassCB.FogColor = {0.7f, 0.7f, 0.7f, 1.0f};
+        m_MainPassCB.FogColor = {0.0f, 0.0f, 0.1f, 1.0f};
         m_MainPassCB.FogStart = 10.0f;
         m_MainPassCB.FogRange = 500.0;
 
@@ -996,10 +1350,26 @@ namespace Acorn{
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE 
+    D3D12GraphicsManager::LastBufferView() const{
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            m_pRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+            g_GraphicsConfig.BackBufferCount, m_uRtvDescriptorSize
+        );
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE 
     D3D12GraphicsManager::CurrentBackBufferView() const{
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
             m_pRtvHeap->GetCPUDescriptorHandleForHeapStart(),
             m_uCurrentBackBufferIndex, m_uRtvDescriptorSize
+        );
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE 
+    D3D12GraphicsManager::LastDepthStencilView() const{
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            m_pDsvHeap->GetCPUDescriptorHandleForHeapStart(),
+            1, m_uDsvDescriptorSize
         );
     }
 

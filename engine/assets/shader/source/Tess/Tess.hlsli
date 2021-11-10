@@ -44,6 +44,11 @@ cbuffer ObjectCB : register(b1){
 	float4x4 TexTransform;
 };
 
+struct CubeView {
+	float4x4 View;
+	float4x4 InvView;
+};
+
 cbuffer MatCB : register(b2){
 	float4 DiffuseAlbedo;
     float3 FresnelR0;

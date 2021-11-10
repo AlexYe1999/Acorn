@@ -3,6 +3,7 @@
 #include"Vertex.hpp"
 #include"Constant.hpp"
 #include"UploadBuffer.hpp"
+#include"CubeRenderTarget.h"
 #include"FrameResource.hpp"
 #include"DDSTextureLoader.h"
 #include"d3dx12.h"
@@ -107,7 +108,7 @@ namespace Acorn{
         D3D12_INDEX_BUFFER_VIEW  m_IndexBufferView;
 
         std::unique_ptr<ComPtr<ID3D12Resource>[]> m_pRtBuffer;
-        ComPtr<ID3D12Resource> m_pDsBuffer;
+        std::unique_ptr<ComPtr<ID3D12Resource>[]> m_pDsBuffer;
         FrameResourcePtrVector m_pFrameResource;
 
         std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> m_pRootSignatures;
@@ -124,8 +125,10 @@ namespace Acorn{
     protected:
         Scene* m_pScene;
         Timer* m_pTimer;
+        
         PassConstant m_MainPassCB;
         std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pPSOs;
+        std::unique_ptr<UploadBuffer<Matrix4f, false>> m_pCubeMapBuffer;
 
     protected:
         D3D12GraphicsManager();
@@ -135,8 +138,9 @@ namespace Acorn{
 
     protected:
         D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
+        D3D12_CPU_DESCRIPTOR_HANDLE LastBufferView() const;
         D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
-
+        D3D12_CPU_DESCRIPTOR_HANDLE LastDepthStencilView() const;
         void FlushCommandQueue();
 
 #if defined(_DEBUG)
