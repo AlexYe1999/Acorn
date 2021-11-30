@@ -15,9 +15,7 @@ namespace Acorn{
         m_uCurrFrameResourceIndex(0),
         m_uRtvDescriptorSize(0),
         m_uDsvDescriptorSize(0),
-        m_uCbvSrvUavDescriptorSize(0),
-        m_pScene(nullptr),
-        m_pTimer(nullptr)
+        m_uCbvSrvUavDescriptorSize(0)
     {}
 
     void D3D12GraphicsManager::ResetRtAndDs(){
@@ -129,7 +127,7 @@ namespace Acorn{
         };
     }
 
-    void D3D12GraphicsManager::Initialize(Scene* const scene, Timer* const timer){
+    void D3D12GraphicsManager::Initialize(){
 
 #if defined(_DEBUG)
         {
@@ -145,8 +143,6 @@ namespace Acorn{
         LogAdaptors();
 #endif
 
-        m_pScene = scene;
-        m_pTimer = timer;
         BuildDeviceAndFence();
         BuildCommandObject();
         BuildSwapChain();

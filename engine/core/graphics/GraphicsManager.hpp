@@ -1,15 +1,13 @@
 #pragma once
 #include"IRuntimeModule.hpp"
 #include"Vector.hpp"
-#include"Scene.hpp"
-#include"Timer.hpp"
+
 
 namespace Acorn{
 
     class GraphicsManager : public IRuntimeModule{
     public:
         virtual void Initialize() = 0;
-        virtual void Initialize(Scene* const scene, Timer* const timer) = 0;
         virtual void Finalize() = 0;
         virtual void Tick() = 0;
 
