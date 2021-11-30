@@ -19,7 +19,7 @@ set(IMGUI_URL "https://github.com/ocornut/imgui/archive/refs/tags/v1.84.2.zip")
 set(IMGUI_FILE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/imgui)
 
 if(NOT EXISTS ${IMGUI_FILE})
-    DownloadFile(${IMGUI_URL} ${IMGUI_FILE}.zip)
+    #DownloadFile(${IMGUI_URL} ${IMGUI_FILE}.zip)
     #if(EXISTS ${IMGUI_FILE}.zip)
         #ExtractFile(${IMGUI_FILE}.zip ${IMGUI_FILE})
     #else(EXISTS ${IMGUI_FILE}.zip)
