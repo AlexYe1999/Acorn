@@ -40,15 +40,11 @@ namespace Acorn{
 
     class D3D12GraphicsManager : public GraphicsManager{
     public:
-        static D3D12GraphicsManager* GetInstance() {
-            return ms_pInstance != nullptr
-                ? ms_pInstance : ms_pInstance = new D3D12GraphicsManager;
-        }
+        D3D12GraphicsManager();
 
         void ResetRtAndDs();
 
-        virtual void Initialize() override {};
-        virtual void Initialize(Scene* const scene, Timer* const timer) override;
+        virtual void Initialize() override;
         virtual void Finalize() override;
         virtual void Tick() override;
 
@@ -123,16 +119,12 @@ namespace Acorn{
         uint16_t m_uCbvSrvUavDescriptorSize;
 
     protected:
-        Scene* m_pScene;
-        Timer* m_pTimer;
         PassConstant m_MainPassCB;
         std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pPSOs;
 
     protected:
-        D3D12GraphicsManager();
         D3D12GraphicsManager(const D3D12GraphicsManager& instance) = delete;
         void operator =(const D3D12GraphicsManager& instance) = delete;
-        static inline D3D12GraphicsManager* ms_pInstance = nullptr;
 
     protected:
         D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
