@@ -14,4 +14,4 @@ set(ALL_FILE
 
 add_executable(Test WIN32 ${ALL_FILE})
 target_link_libraries(Test AppFramework)
-set_target_properties(Test AppFramework PROPERTIES FOLDER "samples/D3DApp")
+set_target_properties(Test PROPERTIES FOLDER "samples/windows")

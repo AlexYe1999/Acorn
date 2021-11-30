@@ -3,7 +3,7 @@
 #include<string>
 #include<cstdlib>
 
-class App{
+class __declspec(dllexport) App{
 public:
     App(uint16_t width, uint16_t height, std::string name) 
         : 
@@ -23,7 +23,6 @@ public:
     virtual void OnKeyDown(uint16_t)   {}
     virtual void OnKeyUp(uint16_t)     {}
 
-    // Accessors.
     uint16_t GetWidth() const { return m_uWidth; }
     uint16_t GetHeight() const { return m_uHeight; }
     const std::string& GetTitle() const { return m_wstrTitle; }

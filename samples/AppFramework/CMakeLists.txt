@@ -6,5 +6,5 @@ set(ALL_FILE
     App.hpp
 )
 
-add_library(AppFramework ${ALL_FILE})
+add_library(AppFramework SHARED ${ALL_FILE})
 set_target_properties(AppFramework PROPERTIES FOLDER "samples/framework")

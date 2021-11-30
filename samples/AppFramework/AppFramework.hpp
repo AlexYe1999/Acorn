@@ -2,7 +2,7 @@
 #include"App.hpp"
 #include<windows.h>
 
-class AppFramework{
+class __declspec(dllexport) AppFramework{
 public:
     static int Run(App* pApp, HINSTANCE hInstance, int nCmdShow);
     static HWND GetHwnd() { return m_hWnd; }
