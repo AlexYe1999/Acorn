@@ -2,6 +2,6 @@
 #include"GLApp.hpp"
 
 int main(int argc, char* argv[]){
-    GLApp App(960, 480, "Hello game engine !!!");
+    GLApp App(640, 480, "Hello OpenGL !!!");
     return AppFramework::Run(&App, argc, argv);
 }

@@ -1,7 +1,12 @@
 #pragma once
 #include"IApplication.hpp"
-#include<xcb/xcb.h>
 #include<cstring>
+
+#include<X11/Xlib.h>
+#include<xcb/xcb.h>
+
+#include<GL/gl.h> 
+#include<GL/glx.h> 
 
 class AppFramework{
 public:
