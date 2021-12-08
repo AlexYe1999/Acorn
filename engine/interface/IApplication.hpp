@@ -3,15 +3,15 @@
 #include<string>
 #include<cstdlib>
 
-class __declspec(dllexport) App{
+class IApplication{
 public:
-    App(uint16_t width, uint16_t height, std::string name) 
-        : 
-        m_uWidth(width),
-        m_uHeight(height),
-        m_strTitle(name)
+    IApplication(uint16_t width, uint16_t height, const std::string& name) 
+        : m_uWidth(width)
+        , m_uHeight(height)
+        , m_strTitle(name)
     {};
-    virtual ~App() {};
+
+    virtual ~IApplication() {};
 
     virtual void OnInit() = 0;
     virtual void OnUpdate() = 0;

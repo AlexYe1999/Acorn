@@ -1,5 +1,5 @@
 #pragma once
-#include"App.hpp"
+#include"IApplication.hpp"
 #include<windows.h>
 
 class __declspec(dllexport) AppFramework{
@@ -11,7 +11,6 @@ public:
 protected:
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-private:
     static inline HWND m_hWnd = nullptr;
     static inline App* m_pApp = nullptr;
 };

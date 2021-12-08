@@ -1,2 +1,6 @@
-add_subdirectory(AppFramework)
-add_subdirectory(Windows)
+
+if(PLATFORM_WINDOWS)
+    add_subdirectory(Windows)
+elseif(PLATFORM_LINUX)
+    add_subdirectory(Linux)
+endif()
