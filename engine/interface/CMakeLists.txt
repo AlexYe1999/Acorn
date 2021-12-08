@@ -1,6 +1,7 @@
 
 set(ALL_FILE
     None.cpp
+    ISceneNode.hpp
     IKeyModule.hpp
     IRuntimeModule.hpp
 )

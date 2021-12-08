@@ -5,7 +5,7 @@ D3DApp::D3DApp(uint16_t width, uint16_t height, std::string name)
     App(width, height, name),
     m_pGraphicsMgr(nullptr)
 {
-    m_fAspectRatio = width / height;
+    m_fAspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 
 D3DApp::~D3DApp(){}

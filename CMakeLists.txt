@@ -11,22 +11,6 @@ set(3RDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty CACHE PATH "3rdparty folde
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include(scripts/cmake/InitResource.cmake)
-
-InitResource()
-
-set(IMGUI_URL "https://github.com/ocornut/imgui/archive/refs/tags/v1.84.2.zip")
-set(IMGUI_FILE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/imgui)
-
-if(NOT EXISTS ${IMGUI_FILE})
-    #DownloadFile(${IMGUI_URL} ${IMGUI_FILE}.zip)
-    #if(EXISTS ${IMGUI_FILE}.zip)
-        #ExtractFile(${IMGUI_FILE}.zip ${IMGUI_FILE})
-    #else(EXISTS ${IMGUI_FILE}.zip)
-        #message(ERROR "can not find " ${IMGUI_FILE}.zip) 
-    #endif(EXISTS ${IMGUI_DIR}.zip)
-endif(NOT EXISTS ${IMGUI_FILE})
-
 add_subdirectory(engine)
 add_subdirectory(samples)
 add_subdirectory(3rdparty)

@@ -2,6 +2,8 @@
 
 int AppFramework::Run(App* pApp, HINSTANCE hInstance, int nCmdShow)
 {
+    m_pApp = pApp;
+    
     WNDCLASSEX windowClass = { 0 };
     windowClass.cbSize = sizeof(WNDCLASSEX);
     windowClass.style = CS_HREDRAW | CS_VREDRAW;

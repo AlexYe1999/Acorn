@@ -9,7 +9,7 @@ public:
         : 
         m_uWidth(width),
         m_uHeight(height),
-        m_wstrTitle(name)
+        m_strTitle(name)
     {};
     virtual ~App() {};
 
@@ -25,10 +25,10 @@ public:
 
     uint16_t GetWidth() const { return m_uWidth; }
     uint16_t GetHeight() const { return m_uHeight; }
-    const std::string& GetTitle() const { return m_wstrTitle; }
+    const std::string& GetTitle() const { return m_strTitle; }
 
 protected:
     uint16_t m_uWidth;
     uint16_t m_uHeight;
-    std::string m_wstrTitle;
+    std::string m_strTitle;
 };
