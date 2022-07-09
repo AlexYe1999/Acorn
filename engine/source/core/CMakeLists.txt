@@ -1,8 +1,0 @@
-#add_subdirectory(asset_loader)
-add_subdirectory(input)
-add_subdirectory(timer)
-add_subdirectory(log)
-add_subdirectory(memory)
-add_subdirectory(camera)
-add_subdirectory(texture)
-add_subdirectory(graphics)

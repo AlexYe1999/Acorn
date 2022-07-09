@@ -10,12 +10,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(CMakeDependentOption)
 
-if(PLATFORM_WINDOWS)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
-    add_compile_definitions("PLATFORM_WINDOWS=true")
-endif()
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set(ACORN_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CMAKE_INSTALL_PREFIX "${PILOT_ROOT_DIR}/bin")
+set(BINARY_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/")
 
 add_subdirectory(engine)

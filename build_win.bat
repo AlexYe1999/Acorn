@@ -1,9 +1,4 @@
-git submodule update --init --recursive
+git submodule update
+cmake -S . -B build -A x64 -DPLATFORM_WINDOWS=ON
 
-rmdir /S /Q build
-mkdir build
-cd build
-cmake -A x64 -DPLATFORM_WINDOWS=ON ..
-AcornEngine.sln
-cd ..
 pause
