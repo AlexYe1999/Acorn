@@ -7,8 +7,8 @@
 
 namespace Acorn{
     struct WindowCreateInfo{
-        uint16_t    width  {1280};
-        uint16_t    height {720};
+        uint16_t    width  { 1280 };
+        uint16_t    height { 720 };
         const char* title  {"Acorn"};
         bool        is_fullscreen {false};
     };
@@ -18,7 +18,12 @@ namespace Acorn{
         WindowSystem() = default;
         ~WindowSystem() = default;
 
-        virtual void Initialize(WindowCreateInfo const& createInfo) = 0;
+        virtual void Initialize(WindowCreateInfo const& createInfo){
+            m_width  = createInfo.width;
+            m_height = createInfo.height;
+            m_is_fullscreen = createInfo.is_fullscreen;
+        }
+
         virtual void ProcessMessage() = 0;
 
         virtual bool ShouldClose() const{ return m_should_close; };
@@ -31,7 +36,7 @@ namespace Acorn{
         uint16_t m_width   { 0 };
         uint16_t m_height  { 0 };
 
-        bool m_should_close { false };
+        bool m_should_close  { false };
         bool m_is_fullscreen { false };
 
     };

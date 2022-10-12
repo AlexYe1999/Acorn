@@ -1,11 +1,20 @@
 #pragma once
 
 #include "runtime/function/context/engine_context.hpp"
+#include "runtime/core/timer/Timer.hpp"
 
-#include <chrono>
+#if defined(__linux__)
+    #include<unistd.h>
+#elif defined(_WIN32)
+    #undef max
+    #undef min
+    #include<windows.h>
+#endif
+
 #include <string>
-#include <unordered_set>
-
+#include <chrono>
+#include <thread>
+#include <algorithm>
 
 namespace Acorn{
 
@@ -26,39 +35,55 @@ namespace Acorn{
         template<typename RuntimeContext = EngineRuntimeContext>
         void StartEngine(){
 
+            m_engine_timer.Initialize();
+
             m_runtime_context = std::make_unique<RuntimeContext>();
             m_runtime_context->StartSystems();
+
+            m_min_time_per_frame = 1000 / 60;
+
+            m_engine_timer.Tick();
 
         }
 
         void ShutdownEngine(){
+
+            m_engine_timer.Tick();
+
             m_runtime_context->ShutdownSystems();
+
+            m_engine_timer.Tick();
         }
 
         void Run(){
-
-            while(!m_runtime_context->m_window_system->ShouldClose()){
-                float tick_time = TimerTick();
-                TickOneFrame(tick_time);
+            while(!m_runtime_context->window_system->ShouldClose()){
+                TickOneFrame(m_engine_timer.Tick());
             }
-
         }
 
-        bool TickOneFrame(float delta_time){
+        void TickOneFrame(uint32_t cost_time){
+
+            m_runtime_context->window_system->ProcessMessage();
+
+#if defined(__linux__)
+            sleep(std::min(static_cast<uint32_t>(0), static_cast<uint32_t>(m_min_time_per_frame-cost_time)));
+#elif defined(_WIN32)
+            Sleep(std::min(static_cast<uint32_t>(0), static_cast<uint32_t>(m_min_time_per_frame-cost_time)));
+#endif
+
+            static float average_delta_time { 0.0f };
+            float delta_time = std::max(cost_time, m_min_time_per_frame) * TimeToSeconds<std::chrono::milliseconds>::value;
+            average_delta_time = average_delta_time * 0.8f + delta_time * 0.2f;
 
             LogicalTick(delta_time);
+            RendererTick(delta_time);
 
-            RendererTick();
+            std::string runtime_info =
+                "fps : "      + std::to_string(static_cast<uint16_t>(1.0f / average_delta_time)) + " " +
+                "cpu time : " + std::to_string(cost_time);
 
-            auto window = m_runtime_context->m_window_system;
-            window->ProcessMessage();
-            window->SetTitle(std::string(std::to_string(GetFPS()) + " FPS").c_str());
+            m_runtime_context->window_system->SetTitle(runtime_info.c_str());
 
-            return !window->ShouldClose();
-        }
-
-        float GetFPS() const {
-            return m_fps; 
         }
 
         EngineRuntimeContext* GetEngineRuntimeContext() const{
@@ -66,38 +91,21 @@ namespace Acorn{
         }
 
     protected:
+
         void LogicalTick(float delta_time){
 
         }
 
-        void RendererTick(){
+        void RendererTick(float delta_time){
 
-        }
-
-        float TimerTick(){
-            using namespace std::chrono;
-
-            static uint16_t frame_count   { 0 };
-            static float average_duration { 0.0f };
-            static steady_clock::time_point m_last_tick_time_point{ std::chrono::steady_clock::now() };
-
-            frame_count++;
-            steady_clock::time_point tick_time_point = steady_clock::now();
-            float delta_time = duration_cast<duration<float>>(tick_time_point - m_last_tick_time_point).count();
-
-            m_last_tick_time_point = tick_time_point;
-
-            average_duration = average_duration * 99e-2f + delta_time * 1e-2f;
-            m_fps = static_cast<int>(1.f / average_duration);
-
-            return delta_time;
         }
 
     protected:
         Engine() = default;
         virtual ~Engine() = default;
 
-        uint16_t m_fps = 0;
+        uint32_t                              m_min_time_per_frame = 0;
+        Timer<std::chrono::milliseconds>      m_engine_timer;
         std::unique_ptr<EngineRuntimeContext> m_runtime_context;
 
     };

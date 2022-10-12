@@ -11,7 +11,7 @@ set(BUILD_SHARED_LIBS OFF)
 include(CMakeDependentOption)
 
 set(ACORN_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(CMAKE_INSTALL_PREFIX "${PILOT_ROOT_DIR}/bin")
+set(CMAKE_INSTALL_PREFIX "${ACORN_ROOT_DIR}/bin")
 set(BINARY_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/")
 
 add_subdirectory(engine)

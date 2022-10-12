@@ -3,31 +3,26 @@
 #include "runtime/function/window/window_system.hpp"
 
 #include <memory>
+#include <iostream>
 #include <filesystem>
 
 // https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
-#define PILOT_XSTR(s) PILOT_STR(s)
-#define PILOT_STR(s) #s
+#define ARG_TO_STR(s) #s
 
 namespace Acorn{
-
-    struct EngineInitParams{
-        std::filesystem::path root_folder;
-        //std::filesystem::path config_file_path;
-    };
 
     class EngineRuntimeContext{
     public:
 
         virtual void StartSystems(){
-            std::filesystem::path pilot_root_folder = std::filesystem::path(PILOT_XSTR(ACORN_ROOT_DIR));
-            m_engine_init_param.root_folder = pilot_root_folder;
+            std::filesystem::path engine_root_folder = std::filesystem::path(ARG_TO_STR(ACORN_ROOT_DIR));
+
+            std::cout << "engine root folder : " << engine_root_folder << "\n";
         }
 
         virtual void ShutdownSystems() = 0;
 
-        EngineInitParams m_engine_init_param;
-        std::shared_ptr<WindowSystem> m_window_system;
+        std::shared_ptr<WindowSystem> window_system;
     };
 
 }

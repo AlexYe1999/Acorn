@@ -6,9 +6,7 @@ namespace Acorn{
 
     void Win32Window::Initialize(WindowCreateInfo const& createInfo){
 
-        m_width  = createInfo.width;
-        m_height = createInfo.height;
-        m_is_fullscreen = createInfo.is_fullscreen;
+        WindowSystem::Initialize(createInfo);
 
         WNDCLASS wc = {};
 
@@ -44,7 +42,6 @@ namespace Acorn{
             DispatchMessage(&msg);
 
         }
-        Sleep(1);
 
     }
 
