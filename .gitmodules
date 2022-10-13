@@ -4,3 +4,6 @@
 [submodule "engine/source/3rdparty/imgui"]
 	path = engine/source/3rdparty/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "engine/source/3rdparty/json"]
+	path = engine/source/3rdparty/json
+	url = https://github.com/nlohmann/json.git
