@@ -1,32 +1,12 @@
 #pragma once
-#include<cstdint>
-#include<chrono>
-#include<windows.h>
 
+#include<ratio>
+#include<chrono>
+#include<cstdint>
 
 namespace Acorn{
 
-    template<typename clock_accuracy>
-    struct TimeToSeconds{
-        inline static float const value = 1.0f;
-    };
-
-    template<>
-    struct TimeToSeconds<std::chrono::milliseconds>{
-        inline static float const value = 1e-3f;
-    };
-
-    template<>
-    struct TimeToSeconds<std::chrono::microseconds>{
-        inline static float const value = 1e-6f;
-    };
-
-    template<>
-    struct TimeToSeconds<std::chrono::nanoseconds>{
-        inline static float const value = 1e-9f;
-    };
-
-    template<typename clock_accuracy>
+    template<typename rep, typename period>
     class Timer{
     public:
         Timer() 
@@ -45,18 +25,21 @@ namespace Acorn{
             m_current_tick = m_start_tick;
         }
 
-        uint32_t Tick(){
+        void Tick(){
             m_last_tick    = m_current_tick;
             m_current_tick = std::chrono::steady_clock::now();
-            return DeltaTime();
         }
 
-        uint32_t TotalTime() const{
-            return std::chrono::duration_cast<clock_accuracy>(m_current_tick - m_start_tick).count();
+        std::chrono::duration<rep, period> ElapsedTime() const{
+            return std::chrono::duration_cast<std::chrono::duration<rep, period>>(std::chrono::steady_clock::now() - m_current_tick);
         }
 
-        uint32_t DeltaTime() const{
-            return std::chrono::duration_cast<clock_accuracy>(m_current_tick - m_last_tick).count();
+        std::chrono::duration<rep, period> DeltaTime() const{
+            return std::chrono::duration_cast<std::chrono::duration<rep, period>>(m_current_tick - m_last_tick);
+        }
+
+        std::chrono::duration<rep, period> TotalTime() const {
+            return std::chrono::duration_cast<std::chrono::duration<rep, period>>(m_current_tick - m_start_tick);
         }
 
         std::chrono::time_point<std::chrono::steady_clock> m_start_tick;

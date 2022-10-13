@@ -3,15 +3,8 @@
 #include "runtime/function/context/engine_context.hpp"
 #include "runtime/core/timer/Timer.hpp"
 
-#if defined(__linux__)
-    #include<unistd.h>
-#elif defined(_WIN32)
-    #undef max
-    #undef min
-    #include<windows.h>
-#endif
-
 #include <string>
+#include <ratio>
 #include <chrono>
 #include <thread>
 #include <algorithm>
@@ -40,7 +33,7 @@ namespace Acorn{
             m_runtime_context = std::make_unique<RuntimeContext>();
             m_runtime_context->StartSystems();
 
-            m_min_time_per_frame = 1000 / 60;
+            m_time_per_frame = 1000.0f / 60.0f;
 
             m_engine_timer.Tick();
 
@@ -57,30 +50,35 @@ namespace Acorn{
 
         void Run(){
             while(!m_runtime_context->window_system->ShouldClose()){
-                TickOneFrame(m_engine_timer.Tick());
+                TickOneFrame();
             }
         }
 
-        void TickOneFrame(uint32_t cost_time){
+        void TickOneFrame(){
 
-            m_runtime_context->window_system->ProcessMessage();
-
-#if defined(__linux__)
-            sleep(std::min(static_cast<uint32_t>(0), static_cast<uint32_t>(m_min_time_per_frame-cost_time)));
-#elif defined(_WIN32)
-            Sleep(std::min(static_cast<uint32_t>(0), static_cast<uint32_t>(m_min_time_per_frame-cost_time)));
-#endif
+            float delta_time = m_engine_timer.DeltaTime().count();
 
             static float average_delta_time { 0.0f };
-            float delta_time = std::max(cost_time, m_min_time_per_frame) * TimeToSeconds<std::chrono::milliseconds>::value;
             average_delta_time = average_delta_time * 0.8f + delta_time * 0.2f;
 
+            m_engine_timer.Tick();
+
             LogicalTick(delta_time);
+
+            float cpu_costs = m_engine_timer.ElapsedTime().count();
+
             RendererTick(delta_time);
 
-            std::string runtime_info =
-                "fps : "      + std::to_string(static_cast<uint16_t>(1.0f / average_delta_time)) + " " +
-                "cpu time : " + std::to_string(cost_time);
+            float render_costs = m_engine_timer.ElapsedTime().count() - cpu_costs;
+
+            while (m_engine_timer.ElapsedTime().count() < m_time_per_frame) {
+                m_runtime_context->window_system->ProcessMessage();
+            }
+
+            std::string runtime_info = 
+                "fps : " + std::to_string(1000.0f / average_delta_time) + " " +
+                "cpu time : " + std::to_string(cpu_costs) + " ms" + " " + 
+                "render time ; " + std::to_string(render_costs) + "ms";
 
             m_runtime_context->window_system->SetTitle(runtime_info.c_str());
 
@@ -104,9 +102,9 @@ namespace Acorn{
         Engine() = default;
         virtual ~Engine() = default;
 
-        uint32_t                              m_min_time_per_frame = 0;
-        Timer<std::chrono::milliseconds>      m_engine_timer;
-        std::unique_ptr<EngineRuntimeContext> m_runtime_context;
+        float                                   m_time_per_frame = 0.0f;
+        Timer<float, std::milli>                m_engine_timer;
+        std::unique_ptr<EngineRuntimeContext>   m_runtime_context;
 
     };
 

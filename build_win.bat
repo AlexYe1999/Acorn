@@ -1,4 +1,4 @@
-git submodule update
-cmake -S . -B build -A x64 -DPLATFORM_WINDOWS=ON
+git submodule update --init --recursive
+cmake -S . -B build -A x64 -D PLATFORM_WINDOWS=ON
 
 pause
