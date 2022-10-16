@@ -3,6 +3,7 @@
 #include "runtime/function/context/engine_context.hpp"
 #include "runtime/core/timer/Timer.hpp"
 
+#include <cassert>
 #include <string>
 #include <ratio>
 #include <chrono>
@@ -22,18 +23,23 @@ namespace Acorn{
             return s_instance;
         }
 
-        void Initialize(){}
-        void Clear(){}
+        template<typename RuntimeContext = RuntimeContext>
+        void InitEngine(){
 
-        template<typename RuntimeContext = EngineRuntimeContext>
-        void StartEngine(){
-
-            m_engine_timer.Initialize();
+            m_engine_timer.InitTimer();
 
             m_runtime_context = std::make_unique<RuntimeContext>();
-            m_runtime_context->StartSystems();
+            m_runtime_context->InitSystems();
+        
+        }
 
-            m_time_per_frame = 1000.0f / 60.0f;
+        void StartEngine(){
+
+            assert(m_runtime_context);
+            m_runtime_context->StartSystems();
+        
+            float frame_rate = Engine::GetInstance().GetRuntimeContext()->GetConfigSystem()->GetEngineConfig().fps;
+            m_time_per_frame = 1000.0f / frame_rate;
 
             m_engine_timer.Tick();
 
@@ -42,21 +48,24 @@ namespace Acorn{
         void ShutdownEngine(){
 
             m_engine_timer.Tick();
-
+            
+            assert(m_runtime_context);
             m_runtime_context->ShutdownSystems();
 
             m_engine_timer.Tick();
         }
 
         void Run(){
-            while(!m_runtime_context->window_system->ShouldClose()){
+
+            assert(m_runtime_context);
+            while(!m_runtime_context->GetWindowSystem()->ShouldClose()){
                 TickOneFrame();
             }
         }
 
         void TickOneFrame(){
 
-            float delta_time = m_engine_timer.DeltaTime().count();
+            float delta_time = m_engine_timer.DeltaTime().count() * 1e-3f;
 
             static float average_delta_time { 0.0f };
             average_delta_time = average_delta_time * 0.8f + delta_time * 0.2f;
@@ -71,20 +80,22 @@ namespace Acorn{
 
             float render_costs = m_engine_timer.ElapsedTime().count() - cpu_costs;
 
+            auto window = m_runtime_context->GetWindowSystem();
+
             while (m_engine_timer.ElapsedTime().count() < m_time_per_frame) {
-                m_runtime_context->window_system->ProcessMessage();
+                window->ProcessMessage();
             }
 
             std::string runtime_info = 
-                "fps : " + std::to_string(1000.0f / average_delta_time) + " " +
-                "cpu time : " + std::to_string(cpu_costs) + " ms" + " " + 
-                "render time ; " + std::to_string(render_costs) + "ms";
+                "cpu time : " + std::to_string(cpu_costs) + " ms" + " - " + 
+                "render time " + std::to_string(render_costs) + " ms" + " - " +
+                "fps : " + std::to_string(1.0f / average_delta_time);
 
-            m_runtime_context->window_system->SetTitle(runtime_info.c_str());
+            window->SetTitle(runtime_info.c_str());
 
         }
 
-        EngineRuntimeContext* GetEngineRuntimeContext() const{
+        RuntimeContext* GetRuntimeContext() const{
             return m_runtime_context.get();
         }
 
@@ -98,13 +109,13 @@ namespace Acorn{
 
         }
 
-    protected:
+    private:
         Engine() = default;
         virtual ~Engine() = default;
 
-        float                                   m_time_per_frame = 0.0f;
-        Timer<float, std::milli>                m_engine_timer;
-        std::unique_ptr<EngineRuntimeContext>   m_runtime_context;
+        float                             m_time_per_frame  { 1.0f };
+        Timer<float, std::milli>          m_engine_timer;
+        std::unique_ptr<RuntimeContext>   m_runtime_context { nullptr };
 
     };
 

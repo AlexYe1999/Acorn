@@ -15,7 +15,7 @@ namespace Acorn{
             , m_current_tick(std::chrono::steady_clock::now())
         {}
 
-        void Initialize(){
+        void InitTimer(){
             Reset();
         }
 

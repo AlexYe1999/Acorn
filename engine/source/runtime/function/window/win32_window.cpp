@@ -1,12 +1,22 @@
 #include "win32_window.hpp"
+#include "runtime/engine.hpp"
 
 #include <windows.h>
 
 namespace Acorn{
 
-    void Win32Window::Initialize(WindowCreateInfo const& createInfo){
+    void Win32Window::InitSystem(){
 
-        WindowSystem::Initialize(createInfo);
+    }
+
+    void Win32Window::StartSystem(){
+
+        m_config_system = Engine::GetInstance().GetRuntimeContext()->GetConfigSystem();
+        auto const& config = m_config_system->GetEngineConfig();
+
+        m_width         = config.width;
+        m_height        = config.height;
+        m_is_fullscreen = config.is_fullscreen;
 
         WNDCLASS wc = {};
 
@@ -23,7 +33,7 @@ namespace Acorn{
             WS_OVERLAPPEDWINDOW,          
             CW_USEDEFAULT, CW_USEDEFAULT, 
             m_width, m_height,
-            NULL,   
+            NULL,
             NULL,      
             GetModuleHandleA(NULL),  
             this 
@@ -32,6 +42,8 @@ namespace Acorn{
         ShowWindow(m_hwnd, m_is_fullscreen == false ? SW_SHOW : SW_MAXIMIZE);
 
     }
+
+    void Win32Window::ShutdownSystem(){}
 
     void Win32Window::ProcessMessage(){
 

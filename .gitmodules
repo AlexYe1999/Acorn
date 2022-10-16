@@ -7,3 +7,6 @@
 [submodule "engine/source/3rdparty/json"]
 	path = engine/source/3rdparty/json
 	url = https://github.com/nlohmann/json.git
+[submodule "engine/source/3rdparty/spdlog"]
+	path = engine/source/3rdparty/spdlog
+	url = https://github.com/gabime/spdlog.git
