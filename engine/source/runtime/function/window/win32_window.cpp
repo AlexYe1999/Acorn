@@ -4,8 +4,8 @@
 
 namespace Acorn{
 
-    void Win32Window::Initialize(WindowCreateInfo const& createInfo){
-
+    void Win32Window::Initialize(WindowCreateInfo const& createInfo)
+    {
         WindowSystem::Initialize(createInfo);
 
         WNDCLASS wc = {};
@@ -33,8 +33,13 @@ namespace Acorn{
 
     }
 
-    void Win32Window::ProcessMessage(){
+    void Win32Window::ShutdownSystem()
+    {
 
+    }
+
+    void Win32Window::ProcessMessage()
+    {
         MSG msg = {};
         while(PeekMessageA(&msg, m_hwnd, 0, 0, PM_REMOVE)){
 
@@ -45,23 +50,27 @@ namespace Acorn{
 
     }
 
-    void Win32Window::SetTitle(char const* const text) const{
+    void Win32Window::SetTitle(char const* const text) const
+    {
         SetWindowTextA(m_hwnd, text);
     }
 
-    LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
-
+    LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    {
         Win32Window* window_ptr = nullptr;
 
-        if(uMsg == WM_CREATE){
+        if(uMsg == WM_CREATE)
+        {
             window_ptr = reinterpret_cast<Win32Window*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window_ptr));
         }
-        else{
+        else
+        {
             window_ptr = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         }
 
-        switch(uMsg){
+        switch(uMsg)
+        {
             case WM_CLOSE:
             {
                 DestroyWindow(hwnd);

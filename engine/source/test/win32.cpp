@@ -2,7 +2,7 @@
 #include "runtime/function/window/win32_window.hpp"
 #include "runtime/function/context/engine_context.hpp"
 
-class Win32TestContext : public Acorn::EngineRuntimeContext{
+class TestContext : public Acorn::EngineRuntimeContext{
 public: 
     virtual void StartSystems() override{
         EngineRuntimeContext::StartSystems();
@@ -13,7 +13,10 @@ public:
         window_system->Initialize(info);
     }
 
-    virtual void ShutdownSystems() override{}
+    virtual void ShutdownSystems() override
+    {
+        window_system->ShutdownSystem();
+    }
 
 };
 
@@ -26,7 +29,7 @@ int WINAPI wWinMain(
     Acorn::Engine& engine = Acorn::Engine::GetInstance();
 
     engine.Initialize();
-    engine.StartEngine<Win32TestContext>();
+    engine.StartEngine<TestContext>();
 
     engine.Run();
 

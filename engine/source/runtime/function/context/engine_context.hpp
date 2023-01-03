@@ -9,12 +9,13 @@
 // https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
 #define ARG_TO_STR(s) #s
 
-namespace Acorn{
-
-    class EngineRuntimeContext{
+namespace Acorn
+{
+    class EngineRuntimeContext
+    {
     public:
-
-        virtual void StartSystems(){
+        virtual void StartSystems()
+        {
             std::filesystem::path engine_root_folder = std::filesystem::path(ARG_TO_STR(ACORN_ROOT_DIR));
 
             std::cout << "engine root folder : " << engine_root_folder << "\n";

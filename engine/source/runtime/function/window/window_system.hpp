@@ -6,16 +6,17 @@
 #include <functional>
 
 namespace Acorn{
+
     struct WindowCreateInfo{
         uint16_t    width  { 1280 };
         uint16_t    height { 720 };
-        const char* title  {"Acorn"};
-        bool        is_fullscreen {false};
+        const char* title  { "Acorn" };
+        bool        is_fullscreen { false };
     };
     
     class WindowSystem{
     public:
-        WindowSystem() = default;
+        WindowSystem()  = default;
         ~WindowSystem() = default;
 
         virtual void Initialize(WindowCreateInfo const& createInfo){
@@ -24,6 +25,7 @@ namespace Acorn{
             m_is_fullscreen = createInfo.is_fullscreen;
         }
 
+        virtual void ShutdownSystem() = 0; 
         virtual void ProcessMessage() = 0;
 
         virtual bool ShouldClose() const{ return m_should_close; };
