@@ -1,8 +1,9 @@
 
+add_compile_definitions("ENGINE_ROOT_DIR=${ENGINE_ROOT_DIR}")
 
-add_executable(GLTest glfw.cpp)
-target_include_directories(GLTest PRIVATE ${ENGINE_ROOT_DIR}/source)
-target_link_libraries(GLTest AcornRuntime)
+add_executable(glfwTest glfw.cpp)
+target_include_directories(glfwTest PRIVATE ${ENGINE_ROOT_DIR}/source)
+target_link_libraries(glfwTest AcornRuntime)
 
 if(PLATFORM_WINDOWS)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -17,11 +18,6 @@ if(PLATFORM_WINDOWS)
     target_include_directories(Win32Test PRIVATE ${ENGINE_ROOT_DIR}/source)
     target_link_libraries(Win32Test AcornRuntime)
 
-    add_executable(glfwTest glfw.cpp)
-    target_include_directories(glfwTest PRIVATE ${ENGINE_ROOT_DIR}/source)
-    target_link_libraries(glfwTest AcornRuntime)
-
-    target_link_libraries(glfwTest glfw)
 endif()
 
 

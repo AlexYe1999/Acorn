@@ -67,7 +67,7 @@ namespace Acorn{
 
             float cpu_costs = m_engine_timer.ElapsedTime().count();
 
-            RendererTick(delta_time);
+            RenderTick(delta_time);
 
             float render_costs = m_engine_timer.ElapsedTime().count() - cpu_costs;
 
@@ -94,7 +94,7 @@ namespace Acorn{
 
         }
 
-        void RendererTick(float delta_time){
+        void RenderTick(float delta_time){
 
         }
 
@@ -102,7 +102,7 @@ namespace Acorn{
         Engine() = default;
         virtual ~Engine() = default;
 
-        float                                   m_time_per_frame = 0.0f;
+        float                                   m_time_per_frame { 0.0f };
         Timer<float, std::milli>                m_engine_timer;
         std::unique_ptr<EngineRuntimeContext>   m_runtime_context;
 

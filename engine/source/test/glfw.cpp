@@ -9,10 +9,12 @@ public:
     {
         EngineRuntimeContext::StartSystems();
 
-        window_system = std::make_shared<Acorn::GlfwWindow>();
+        window_system = std::make_unique<Acorn::GlfwWindow>();
 
         Acorn::WindowCreateInfo info;
         window_system->Initialize(info);
+
+        pipeliene = std::make_unique<Acorn::RenderPipeline>("shader/glsl/simple_shader.vert.spv", "shader/glsl/simple_shader.frag.spv");
     }
 
     virtual void ShutdownSystems() override

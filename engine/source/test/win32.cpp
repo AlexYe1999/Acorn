@@ -7,10 +7,11 @@ public:
     virtual void StartSystems() override{
         EngineRuntimeContext::StartSystems();
 
-        window_system = std::make_shared<Acorn::Win32Window>();
+        window_system = std::make_unique<Acorn::Win32Window>();
 
         Acorn::WindowCreateInfo info;
         window_system->Initialize(info);
+
     }
 
     virtual void ShutdownSystems() override
