@@ -6,10 +6,12 @@
 
 using namespace Acorn;
 
-class Win32TestContext : public RuntimeContext{
+class TestContext : public Acorn::EngineRuntimeContext{
 public: 
 
     virtual void InitSystems() override{
+
+        EngineRuntimeContext::StartSystems();
 
         m_config_system = std::make_unique<ConfigSystem>();
         m_config_system->InitSystem();
@@ -17,11 +19,13 @@ public:
         m_logger_system = std::make_unique<LoggerSystem>();
         m_logger_system->InitSystem();
 
-        m_window_system = std::make_unique<Win32Window>();
-        m_window_system->InitSystem();
+        window_system = std::make_shared<Acorn::Win32Window>();
 
-        m_has_init = true;
+        Acorn::WindowCreateInfo info;
+        window_system->Initialize(info);
     }
+
+    virtual void ShutdownSystems() override{}
 
 };
 
@@ -33,8 +37,8 @@ int WINAPI wWinMain(
 
     Acorn::Engine& engine = Acorn::Engine::GetInstance();
 
-    engine.InitEngine<Win32TestContext>();
-    engine.StartEngine();
+    engine.Initialize();
+    engine.StartEngine<TestContext>();
 
     engine.Run();
 

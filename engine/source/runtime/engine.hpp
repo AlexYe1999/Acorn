@@ -76,7 +76,7 @@ namespace Acorn{
 
             float cpu_costs = m_engine_timer.ElapsedTime().count();
 
-            RendererTick(delta_time);
+            RenderTick(delta_time);
 
             float render_costs = m_engine_timer.ElapsedTime().count() - cpu_costs;
 
@@ -105,7 +105,7 @@ namespace Acorn{
 
         }
 
-        void RendererTick(float delta_time){
+        void RenderTick(float delta_time){
 
         }
 

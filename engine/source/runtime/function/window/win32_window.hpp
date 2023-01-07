@@ -7,7 +7,7 @@ namespace Acorn{
 
     class Win32Window : public WindowSystem{
     public:
-        Win32Window() = default;
+        Win32Window()  = default;
         ~Win32Window() = default;
 
         virtual void InitSystem() override;

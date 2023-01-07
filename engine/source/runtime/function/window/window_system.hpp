@@ -7,10 +7,9 @@
 #include <functional>
 
 namespace Acorn{
-
     class WindowSystem{
     public:
-        WindowSystem() = default;
+        WindowSystem()  = default;
         ~WindowSystem() = default;
         WindowSystem const& operator=(WindowSystem &&) = delete;
         WindowSystem const& operator=(WindowSystem const&) = delete;
@@ -19,6 +18,7 @@ namespace Acorn{
         virtual void StartSystem() = 0;
         virtual void ShutdownSystem() = 0;
 
+        virtual void ShutdownSystem() = 0; 
         virtual void ProcessMessage() = 0;
         virtual void SetTitle(char const* const) const = 0;
 
