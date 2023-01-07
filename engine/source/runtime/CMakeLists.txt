@@ -11,12 +11,12 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_F
 add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 
 target_include_directories(
-    ${TARGET_NAME} PRIVATE
+    ${TARGET_NAME} PUBLIC
     ${ENGINE_ROOT_DIR}/source
 )
 
-target_link_libraries(${TARGET_NAME} PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(${TARGET_NAME} PRIVATE spdlog)
+target_link_libraries(${TARGET_NAME} PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(${TARGET_NAME} PUBLIC spdlog)
 
 set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Engine")

@@ -1,7 +1,8 @@
 
 add_executable(GLTest glfw.cpp)
-target_include_directories(GLTest PRIVATE ${ENGINE_ROOT_DIR}/source)
 target_link_libraries(GLTest AcornRuntime)
+
+add_compile_definitions("ENGINE_ROOT_DIR=${BINARY_ROOT_DIR}")
 
 if(PLATFORM_WINDOWS)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -12,9 +13,8 @@ if(PLATFORM_WINDOWS)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 
-    add_executable(Wind32Test WIN32 win32.cpp)    
-    target_include_directories(Wind32Test PRIVATE ${ENGINE_ROOT_DIR}/source)
-    target_link_libraries(Wind32Test AcornRuntime)
+    add_executable(Win32Test WIN32 win32.cpp)    
+    target_link_libraries(Win32Test AcornRuntime)
 endif()
 
 

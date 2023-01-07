@@ -3,6 +3,8 @@
 #include "runtime/resource/config/config_system.hpp"
 #include "spdlog/logger.h"
 
+#include <memory>
+
 namespace Acorn{
 
     class LoggerSystem{
@@ -18,8 +20,8 @@ namespace Acorn{
         virtual void ShutdownSystem();
 
     protected:
-        ConfigSystem* m_config_system { nullptr };
-        spdlog::logger m_logger;
+        ConfigSystem* m_config_system            { nullptr };
+        std::shared_ptr<spdlog::logger> m_logger { nullptr };
     };
 
 }

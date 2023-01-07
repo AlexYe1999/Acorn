@@ -1,7 +1,7 @@
 
 set(ENGINE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(3RDPARTY_DIR "${ENGINE_ROOT_DIR}/3rdparty")
-set(ENGINE_ASSET_DIR "${ENGINE_ROOT_DIR}/asset")
+set(ENGINE_ASSET_DIR "/asset")
 
 add_compile_definitions("ENGINE_ROOT_DIR=${ENGINE_ROOT_DIR}")
 
