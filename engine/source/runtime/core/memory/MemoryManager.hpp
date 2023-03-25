@@ -1,16 +1,21 @@
 #pragma once
 #include"Allocator.hpp"
 #include<malloc.h>
-namespace Acorn {
-    class MemoryManager{
+
+namespace Acorn 
+{
+    class MemoryManager
+    {
     public:
         template<typename T, typename... Arguments>
-        T* New(Arguments... parameters){
+        T* New(Arguments... parameters)
+        {
             return new (Allocate(sizeof(T))) T(parameters...);
         }
 
         template<typename T>
-        void Delete(T *p){
+        void Delete(T *p)
+        {
             reinterpret_cast<T*>(p)->~T();
             Free(p, sizeof(T));
         }

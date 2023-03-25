@@ -11,3 +11,15 @@
 	path = engine/source/3rdparty/spdlog
 	url = https://github.com/gabime/spdlog.git
 
+[submodule "engine/source/3rdparty/tracy"]
+	path = engine/source/3rdparty/tracy
+	url = https://github.com/wolfpld/tracy.git
+[submodule "engine/source/3rdparty/capstone"]
+	path = engine/source/3rdparty/capstone
+	url = https://github.com/capstone-engine/capstone.git
+[submodule "engine/source/3rdparty/entt"]
+	path = engine/source/3rdparty/entt
+	url = https://github.com/skypjack/entt.git
+[submodule "engine/source/3rdparty/stb"]
+	path = engine/source/3rdparty/stb
+	url = https://github.com/nothings/stb.git

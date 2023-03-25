@@ -7,22 +7,20 @@
 #include <fstream>
 #include <iostream>
 
-namespace Acorn{
+namespace Acorn
+{
+    void LoggerSystem::InitSystem()
+    {
+        spdlog::set_pattern("%^[%T] %n: %v%$");
 
-    void LoggerSystem::InitSystem(){
-        m_config_system = Engine::GetInstance().GetRuntimeContext()->GetConfigSystem();
-
-        m_logger = spdlog::basic_logger_mt("logger", (m_config_system->GetWorkingDirectory() / "log.txt").string());
-
+        m_logger = spdlog::basic_logger_mt("logger", (EngineRuntimeContext::ConfigSystem()->GetWorkingDirectory() / "log.txt").string());
+        m_logger->set_level(spdlog::level::trace);
+        m_logger->info("start logger");
     }
 
-    void LoggerSystem::StartSystem(){
-        
-    }
-
-    void LoggerSystem::ShutdownSystem(){
+    void LoggerSystem::ShutdownSystem()
+    {
         m_logger->flush();    
     }
-
 }
 

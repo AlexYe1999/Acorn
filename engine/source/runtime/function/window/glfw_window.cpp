@@ -1,16 +1,20 @@
 #include "glfw_window.hpp"
+#include "runtime/engine.hpp"
 
 namespace Acorn
 {
-	void GlfwWindow::Initialize(WindowCreateInfo const& createInfo)
+	void GlfwWindow::InitSystem()
 	{
-		WindowSystem::Initialize(createInfo);
+        const auto& config = EngineRuntimeContext::ConfigSystem()->GetEngineConfig();
+        m_width  = config.width;
+        m_height = config.height;
+        m_is_fullscreen = config.is_fullscreen;
 
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-		m_window = glfwCreateWindow(m_width, m_height, createInfo.title, nullptr, nullptr);
+		m_window = glfwCreateWindow(m_width, m_height, "", nullptr, nullptr);
 	}
 
     void GlfwWindow::ShutdownSystem()

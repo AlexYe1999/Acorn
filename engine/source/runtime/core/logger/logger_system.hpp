@@ -16,11 +16,9 @@ namespace Acorn{
         LoggerSystem const& operator=(LoggerSystem const&) = delete;
 
         virtual void InitSystem();
-        virtual void StartSystem();
         virtual void ShutdownSystem();
 
     protected:
-        ConfigSystem* m_config_system            { nullptr };
         std::shared_ptr<spdlog::logger> m_logger { nullptr };
     };
 

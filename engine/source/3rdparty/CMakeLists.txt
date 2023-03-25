@@ -1,5 +1,10 @@
-set(3RD_PARTY_FOLDER "ThirdParty")
+set(3RD_PARTY_FOLDER "engine/3rdparty")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+if(NOT TARGET entt)
+    add_subdirectory(entt)
+    set_target_properties(EnTT PROPERTIES FOLDER ${3RD_PARTY_FOLDER}/entt)
+endif()
 
 if(NOT TARGET imgui)
     include(imgui.cmake)
@@ -28,3 +33,9 @@ if(NOT TARGET nlohmann_json)
     add_subdirectory(json)
     set_target_properties(nlohmann_json PROPERTIES FOLDER ${3RD_PARTY_FOLDER}/json)
 endif()
+
+option(TRACY_ENABLE "" ON)
+option(TRACY_ON_DEMAND "" ON)
+add_subdirectory(tracy)
+
+
